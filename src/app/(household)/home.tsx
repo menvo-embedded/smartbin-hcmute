@@ -165,7 +165,7 @@ export default function HouseholdHome() {
         <View style={{ gap: 10 }}>
           <View style={styles.historyHeaderRow}>
             <SectionTitle>Lịch sử gần đây</SectionTitle>
-            <Pressable onPress={() => router.push('/(household)/stats')} hitSlop={8}>
+            <Pressable onPress={() => router.push('/(household)/history')} hitSlop={8}>
               <Text style={styles.historyLink}>Xem tất cả</Text>
             </Pressable>
           </View>
