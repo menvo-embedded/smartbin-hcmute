@@ -71,6 +71,8 @@ khi nộp.*
   và phần còn nợ kỹ thuật (xem `docs/tien-do.md`) để làm cơ sở phân công tiếp.
 - Tạo repo GitHub công khai (`smartbin-hcmute`) để cả nhóm cùng đẩy code và
   làm cơ sở báo cáo tiến độ cho giảng viên.
+- **Dựng xong phần cứng (ESP32 + servo)**, đang trong quá trình tích hợp với
+  app qua BLE — chuyển dần từ `MockBinController` sang kết nối thiết bị thật.
 - **Dựng luồng "Hộ gia đình" (nhánh `feat/household`, chưa merge vào `master`):**
   - 4 màn hình mới `(household)/home`, `history`, `stats`, `profile`, điều
     hướng bằng thanh tab dưới cùng (`Tabs` của Expo Router) thay vì link
