@@ -1,5 +1,4 @@
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Share, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useWasteStats } from '../../features/stats/useWasteStats';
 import { WasteStatsView } from '../../features/stats/WasteStatsView';
@@ -27,9 +26,6 @@ export default function HouseholdStats() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Quay lại</Text>
-        </Pressable>
         <Text style={styles.title}>Thống kê nhà bạn</Text>
       </GradientView>
 
@@ -74,10 +70,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     gap: 6,
     marginBottom: 8,
-  },
-  backText: {
-    color: colors.textOnPrimary,
-    fontWeight: '600',
   },
   title: {
     fontSize: 20,

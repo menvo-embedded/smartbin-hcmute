@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
 import { useSortHistory } from '../../features/sorting/useSortHistory';
 import { WASTE_TYPES, WASTE_LABELS, type WasteType } from '../../shared/constants/waste';
 import { formatRelativeTime } from '../../core/utils/time';
@@ -16,9 +15,6 @@ export default function HouseholdHistory() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Quay lại</Text>
-        </Pressable>
         <Text style={styles.title}>Lịch sử bỏ rác</Text>
       </GradientView>
 
@@ -103,10 +99,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     gap: 6,
-  },
-  backText: {
-    color: colors.textOnPrimary,
-    fontWeight: '600',
   },
   title: {
     fontSize: 20,

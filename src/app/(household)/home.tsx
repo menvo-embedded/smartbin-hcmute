@@ -86,9 +86,6 @@ export default function HouseholdHome() {
         </Pressable>
 
         <View style={styles.headerActions}>
-          <Pressable onPress={() => router.push('/(household)/stats')} hitSlop={8}>
-            <Text style={styles.headerAction}>Thống kê</Text>
-          </Pressable>
           <Pressable
             onPress={async () => {
               await signOut();

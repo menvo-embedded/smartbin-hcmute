@@ -22,9 +22,6 @@ export default function HouseholdProfile() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Quay lại</Text>
-        </Pressable>
         <Text style={styles.title}>Hộ gia đình</Text>
       </GradientView>
 
@@ -113,10 +110,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     gap: 6,
     marginBottom: 8,
-  },
-  backText: {
-    color: colors.textOnPrimary,
-    fontWeight: '600',
   },
   title: {
     fontSize: 20,
