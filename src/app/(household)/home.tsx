@@ -25,14 +25,16 @@ type DeviceWithBins = Device & { bins: Bin[] };
 export default function HouseholdHome() {
   const profile = useAuth((s) => s.profile);
   const signOut = useAuth((s) => s.signOut);
+  const userId = useAuth((s) => s.session?.user.id ?? null);
 
-  // TODO: lọc theo devices.owner_id khi cột này được thêm vào schema (chưa
-  // có — xem docs/KE-HOACH.md). Hiện tạm lấy thiết bị đầu tiên trả về, giống
-  // dữ liệu giả cho tới khi có cách gắn thiết bị với đúng hộ gia đình.
   const { data: devices, isLoading, isRefetching, refetch, error } = useQuery({
-    queryKey: ['household_devices'],
+    queryKey: ['household_devices', userId],
+    enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase.from('devices').select('*, bins(*)');
+      const { data, error } = await supabase
+        .from('devices')
+        .select('*, bins(*)')
+        .eq('owner_id', userId);
       if (error) throw error;
       return data as unknown as DeviceWithBins[];
     },
@@ -125,8 +127,8 @@ export default function HouseholdHome() {
 
         {!isLoading && !error && !device && (
           <EmptyState
-            title="Chưa có thiết bị nào"
-            description="Chạy supabase/seed.sql trước để tạo thùng rác mẫu."
+            title="Chưa có thùng rác nào được gán cho nhà bạn"
+            description="Liên hệ quản trị viên để gán thiết bị cho tài khoản này."
           />
         )}
 

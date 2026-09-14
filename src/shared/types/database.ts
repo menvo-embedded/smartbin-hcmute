@@ -17,6 +17,8 @@ export interface Device {
   longitude: number | null;
   is_online: boolean;
   last_seen_at: string | null;
+  /** Thiết bị riêng của 1 hộ gia đình (profiles.id) — null nghĩa là thiết bị công cộng. */
+  owner_id: string | null;
 }
 
 export interface Bin {
