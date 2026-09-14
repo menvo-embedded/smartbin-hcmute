@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native build output (sinh lại bằng `npx expo prebuild --clean`)
+android/
+ios/
+
+# Biến môi trường — chứa key thật, KHÔNG commit
+.env
+.env.local
+*.env
+
+# Log & debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# File debug/dump phát sinh khi test trên emulator
+.check-screen.png
+.dump2.xml
+com.facebook.react.devsupport.BundleDownloader
+okhttp3.internal.connection.RealCall$AsyncCall
+
+# Editor
+.vscode/
+.idea/
