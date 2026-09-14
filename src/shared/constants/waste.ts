@@ -23,11 +23,12 @@ export const CONFIDENCE_THRESHOLD = 0.7;
 /** Ngăn vượt mức này sẽ sinh công việc thu gom. */
 export const FILL_ALERT_THRESHOLD = 0.8;
 
-export const ROLES = ['user', 'collector', 'admin'] as const;
+export const ROLES = ['user', 'collector', 'admin', 'household'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABELS: Record<Role, string> = {
   user: 'Người dùng',
   collector: 'Nhân viên thu gom',
   admin: 'Quản trị viên',
+  household: 'Hộ gia đình',
 };
