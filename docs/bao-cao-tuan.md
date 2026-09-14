@@ -71,6 +71,19 @@ khi nộp.*
   và phần còn nợ kỹ thuật (xem `docs/tien-do.md`) để làm cơ sở phân công tiếp.
 - Tạo repo GitHub công khai (`smartbin-hcmute`) để cả nhóm cùng đẩy code và
   làm cơ sở báo cáo tiến độ cho giảng viên.
+- **Dựng luồng "Hộ gia đình" (nhánh `feat/household`, chưa merge vào `master`):**
+  - 4 màn hình mới `(household)/home`, `history`, `stats`, `profile`, điều
+    hướng bằng thanh tab dưới cùng (`Tabs` của Expo Router) thay vì link
+    header như luồng công cộng.
+  - Màn chính có chỗ chừa sẵn cho tính năng camera + AI nhận diện rác (định
+    hướng lâu dài), hiện tại dùng lưới chọn loại rác thủ công.
+  - Lọc đúng thiết bị theo hộ gia đình qua cột mới `devices.owner_id` (thêm
+    vào schema Supabase), thay vì hiển thị lẫn thiết bị công cộng.
+  - Tách các phần dùng chung để tránh trùng lặp code giữa luồng công cộng và
+    hộ gia đình: `WasteTypeGrid`, `WasteStatsView`, `ChangePasswordModal`.
+  - Xử lý 2 lỗi build native phát sinh khi thêm tính năng: xung đột phiên
+    bản Kotlin/Compose Compiler, và font icon chưa được nhúng vào bản build
+    Android (cả hai đều đã ghi lại cách sửa trong code để không lặp lại).
 
 ---
 
