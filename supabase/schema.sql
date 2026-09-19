@@ -1,7 +1,7 @@
 -- Schema cho Supabase. Chạy trong SQL Editor.
 
 create type user_role as enum ('user', 'collector', 'admin');
-create type waste_type as enum ('plastic', 'paper', 'metal', 'other');
+create type waste_type as enum ('huu_co', 'vo_co', 'tai_che');
 create type task_status as enum ('pending', 'in_progress', 'done');
 create type sort_source as enum ('manual', 'ai');
 
