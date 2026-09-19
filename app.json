@@ -3,6 +3,13 @@
     "package": "com.anonymous.smartbin"
   },
   "plugins": [
-    "expo-font"
+    [
+      "expo-build-properties",
+      {
+        "android": {
+          "kotlinVersion": "1.9.24"
+        }
+      }
+    ]
   ]
 }
