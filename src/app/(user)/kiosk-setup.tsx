@@ -37,10 +37,8 @@ export default function KioskSetupScreen() {
 
   return (
     <View style={styles.container}>
-      <SectionTitle
-        title="Cấu hình Kiosk"
-        subtitle="Thiết lập thông tin thùng rác và kết nối BLE"
-      />
+      <SectionTitle>Cấu hình Kiosk</SectionTitle>
+        <Text style={styles.statusLabel}>Thiết lập thông tin thùng rác và kết nối BLE</Text>
 
       <Card style={styles.card}>
         <Text style={styles.label}>Mã thùng rác (Bin ID):</Text>

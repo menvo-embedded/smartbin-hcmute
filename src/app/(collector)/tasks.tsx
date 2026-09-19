@@ -11,11 +11,9 @@ import {
   TASK_STATUS_LABEL,
   TASK_STATUS_TONE,
 } from '../../features/collection/taskStatus';
-import type { CollectionTask } from '../../shared/types/database';
+import { MOCK_TASKS, type TaskWithDevice } from '../../features/collection/mockTasks';
 import { colors } from '../../theme/colors';
 import { Card, StatCard, StatusBadge, ScreenHeader, SectionTitle, EmptyState, GradientView } from '../../shared/ui';
-
-type TaskWithDevice = CollectionTask & { devices: { name: string; area: string } | null };
 
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
@@ -30,7 +28,17 @@ export default function Tasks() {
   const signOut = useAuth((s) => s.signOut);
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const { data: tasks, isLoading, isRefetching, refetch } = useQuery({
+  // QUAN TRỌNG: fallback về MOCK_TASKS được đưa vào TRONG queryFn, không còn
+  // tính ở phần thân component nữa. Nhờ vậy cache của key ['collection_tasks']
+  // thực sự CHỨA dữ liệu đang hiển thị — task-detail.tsx có thể patch thẳng
+  // vào cache này (qc.setQueryData) và tasks.tsx sẽ thấy thay đổi ngay khi
+  // quay lại, kể cả khi Supabase chưa có dữ liệu thật.
+  const {
+    data: tasks,
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useQuery({
     queryKey: ['collection_tasks'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,7 +46,8 @@ export default function Tasks() {
         .select('*, devices(name, area)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as unknown as TaskWithDevice[];
+      const rows = data as unknown as TaskWithDevice[];
+      return rows.length > 0 ? rows : MOCK_TASKS;
     },
   });
 
