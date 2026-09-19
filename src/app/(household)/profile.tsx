@@ -22,7 +22,19 @@ export default function HouseholdProfile() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.header}>
-        <Text style={styles.title}>Hộ gia đình</Text>
+        <View>
+          <Text style={styles.title}>Hộ gia đình</Text>
+          <Text style={styles.subtitle}>Quản lý thông tin và thành viên</Text>
+        </View>
+        <Pressable
+          hitSlop={8}
+          onPress={() => Alert.alert('Thông báo', 'Chưa có thông báo mới.')}
+        >
+          <View style={styles.bellWrap}>
+            <Ionicons name="notifications-outline" size={22} color={colors.textOnPrimary} />
+            <View style={styles.bellDot} />
+          </View>
+        </Pressable>
       </GradientView>
 
       <View style={styles.body}>
@@ -31,36 +43,51 @@ export default function HouseholdProfile() {
             <Text style={styles.avatarText}>{(profile?.full_name ?? '?').charAt(0).toUpperCase()}</Text>
           </View>
           <Text style={styles.name}>{profile?.full_name || 'Chưa đặt tên'}</Text>
-          {profile && <StatusBadge label={ROLE_LABELS[profile.role]} tone="success" />}
+          {profile && <StatusBadge label={ROLE_LABELS[profile.role]} tone="success" icon="people" />}
         </View>
 
         <View style={{ height: 20 }} />
 
         <GradientView style={styles.pointsCard}>
-          <View style={styles.pointsLabelRow}>
-            <Ionicons name="leaf-outline" size={16} color={colors.textOnPrimary} />
-            <Text style={styles.pointsLabel}>Điểm tích luỹ của nhà bạn</Text>
-          </View>
+          <Ionicons
+            name="trophy"
+            size={90}
+            color="rgba(255,255,255,0.15)"
+            style={styles.pointsWatermark}
+          />
+          <Text style={styles.pointsLabel}>Điểm tích luỹ của nhà bạn</Text>
           <Text style={styles.pointsValue}>{points} điểm</Text>
           <View style={{ height: 10 }} />
           <ProgressBar value={points / nextTier} color={colors.textOnPrimary} trackColor="rgba(255,255,255,0.3)" />
-          <Text style={styles.pointsHint}>Còn {pointsToNextTier} điểm để lên hạng tiếp theo</Text>
+          <View style={styles.pointsHintRow}>
+            <Text style={styles.pointsHint}>Còn {pointsToNextTier} điểm để lên hạng tiếp theo</Text>
+            <Text style={styles.pointsHint}>
+              {points}/{nextTier}
+            </Text>
+          </View>
         </GradientView>
 
         <View style={{ height: 20 }} />
 
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <SettingsRow icon="lock-closed-outline" label="Đổi mật khẩu" onPress={() => setPasswordModalOpen(true)} />
+          <SettingsRow
+            icon="lock-closed-outline"
+            label="Đổi mật khẩu"
+            description="Cập nhật mật khẩu để bảo vệ tài khoản"
+            onPress={() => setPasswordModalOpen(true)}
+          />
           <View style={styles.divider} />
           <SettingsRow
             icon="globe-outline"
             label="Ngôn ngữ: Tiếng Việt"
+            description="Thay đổi ngôn ngữ ứng dụng"
             onPress={() => Alert.alert('Ngôn ngữ', 'Ứng dụng hiện chỉ hỗ trợ Tiếng Việt.')}
           />
           <View style={styles.divider} />
           <SettingsRow
             icon="log-out-outline"
             label="Đăng xuất"
+            description="Thoát khỏi tài khoản hiện tại"
             danger
             onPress={async () => {
               await signOut();
@@ -78,21 +105,28 @@ export default function HouseholdProfile() {
 function SettingsRow({
   icon,
   label,
+  description,
   onPress,
   danger,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  description: string;
   onPress: () => void;
   danger?: boolean;
 }) {
   return (
     <Pressable style={styles.settingsRow} onPress={onPress}>
       <View style={styles.settingsLeft}>
-        <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.textMuted} />
-        <Text style={[styles.settingsLabel, danger && { color: colors.danger }]}>{label}</Text>
+        <View style={[styles.settingsIconWrap, danger && styles.settingsIconWrapDanger]}>
+          <Ionicons name={icon} size={19} color={danger ? colors.danger : colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.settingsLabel, danger && { color: colors.danger }]}>{label}</Text>
+          <Text style={styles.settingsDescription}>{description}</Text>
+        </View>
       </View>
-      <Text style={[styles.chevron, danger && { color: colors.danger }]}>›</Text>
+      <Ionicons name="chevron-forward" size={18} color={danger ? colors.danger : colors.textMuted} />
     </Pressable>
   );
 }
@@ -108,13 +142,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    gap: 6,
     marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.textOnPrimary,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.primaryLight,
+    marginTop: 4,
+  },
+  bellWrap: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.danger,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   body: {
     paddingHorizontal: 20,
@@ -124,15 +182,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
     color: colors.primaryDark,
   },
@@ -144,11 +202,12 @@ const styles = StyleSheet.create({
   pointsCard: {
     borderRadius: 16,
     padding: 18,
+    overflow: 'hidden',
   },
-  pointsLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  pointsWatermark: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
   },
   pointsLabel: {
     color: colors.primaryLight,
@@ -160,30 +219,49 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
   },
+  pointsHintRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
   pointsHint: {
     color: colors.primaryLight,
     fontSize: 12,
-    marginTop: 8,
   },
   settingsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   settingsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  settingsIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIconWrapDanger: {
+    backgroundColor: colors.dangerBg,
   },
   settingsLabel: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  chevron: {
+  settingsDescription: {
     color: colors.textMuted,
-    fontSize: 18,
+    fontSize: 12,
+    marginTop: 2,
   },
   divider: {
     height: 1,
