@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../core/supabase/client';
+import { isEnvConfigured } from '../../core/config/env';
+import { toSignInErrorMessage } from './authError';
 import type { Profile } from '../../shared/types/database';
 import type { Role } from '../../shared/constants/waste';
 
@@ -39,8 +41,11 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   signIn: async (email, password) => {
+    if (!isEnvConfigured) {
+      throw new Error('Thiếu cấu hình Supabase. Hãy kiểm tra file .env (xem .env.example).');
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) throw new Error(toSignInErrorMessage(error));
   },
 
   signOut: async () => {
