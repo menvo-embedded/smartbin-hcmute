@@ -1,0 +1,5 @@
+# Chỉ menvo-embedded được tính là người duyệt hợp lệ cho Pull Request vào
+# master — thanhbinh109 và Nhanle1910 vẫn duyệt/comment được, nhưng duyệt của
+# họ không đủ điều kiện để mở khoá nút Merge (xem branch protection: "Require
+# review from Code Owners").
+* @menvo-embedded
