@@ -1,90 +1,85 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-
-// Nhập các UI component dùng chung
-import { Card } from '@/shared/ui/Card';
+import { useEffect } from 'react';
+import { Text, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useKioskConfig } from '../../features/devices/kioskConfigStore';
+import { colors } from '../../theme/colors';
+import { Card, GradientView } from '../../shared/ui';
 
 export default function IdleScreen() {
-  const router = useRouter();
+  const binId = useKioskConfig((s) => s.binId);
 
-  const handleStart = () => {
-    // Chuyển sang màn hình phân loại rác
-    router.push('/(user)/sort');
-  };
+  useEffect(() => {
+    // Kiosk chưa được cấu hình mã thùng rác thì bắt đi thiết lập trước,
+    // tránh vào thẳng màn hình chờ mà không biết đang gắn với thùng nào.
+    if (!binId) {
+      router.replace('/(user)/kiosk-setup');
+    }
+  }, [binId]);
+
+  if (!binId) {
+    return null;
+  }
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={styles.container}
-      onPress={handleStart}
-    >
-      <View style={styles.content}>
-        <Card style={styles.card}>
-          <Text style={styles.badge}>SMARTBIN KIOSK</Text>
-          <Text style={styles.title}>Thùng Rác Thông Minh</Text>
-          <Text style={styles.subtitle}>
-            Phân loại rác dễ dàng — Bảo vệ môi trường cùng UTE
-          </Text>
+    <Pressable style={styles.container} onPress={() => router.push('/(user)/sort')}>
+      <Card style={styles.card}>
+        <Text style={styles.badge}>SMARTBIN KIOSK · {binId}</Text>
+        <Text style={styles.title}>Thùng Rác Thông Minh</Text>
+        <Text style={styles.subtitle}>
+          Phân loại rác dễ dàng — Bảo vệ môi trường cùng UTE
+        </Text>
 
-          <View style={styles.actionPrompt}>
-            <Text style={styles.actionText}>Chạm vào màn hình để bắt đầu</Text>
-          </View>
-        </Card>
-      </View>
-    </TouchableOpacity>
+        <GradientView style={styles.actionPrompt}>
+          <Text style={styles.actionText}>Chạm vào màn hình để bắt đầu</Text>
+        </GradientView>
+      </Card>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a', // Màu tối sang trọng cho màn hình chờ
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  content: {
+  card: {
     width: '100%',
     maxWidth: 480,
-  },
-  card: {
     padding: 32,
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderWidth: 1,
-    borderColor: '#334155',
   },
   badge: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#22c55e',
+    color: colors.primary,
     letterSpacing: 2,
     marginBottom: 12,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 22,
   },
   actionPrompt: {
-    backgroundColor: '#22c55e',
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 30,
     marginTop: 8,
   },
   actionText: {
-    color: '#ffffff',
+    color: colors.textOnPrimary,
     fontSize: 16,
     fontWeight: '600',
   },

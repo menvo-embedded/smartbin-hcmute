@@ -1,53 +1,43 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-
-// Nhập các UI component dùng chung
-import { Card } from '@/shared/ui/Card';
-import { SectionTitle } from '@/shared/ui/SectionTitle';
+import { useState } from 'react';
+import { View, Text, Pressable, TextInput, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useKioskConfig } from '../../features/devices/kioskConfigStore';
+import { colors } from '../../theme/colors';
+import { Card, SectionTitle, GradientView } from '../../shared/ui';
 
 export default function KioskSetupScreen() {
-  const router = useRouter();
-  const [binId, setBinId] = useState('BIN-UTE-01');
-  const [isSaving, setIsSaving] = useState(false);
+  const currentBinId = useKioskConfig((s) => s.binId);
+  const setBinId = useKioskConfig((s) => s.setBinId);
+  const [input, setInput] = useState(currentBinId ?? 'BIN-UTE-01');
+  const [busy, setBusy] = useState(false);
 
-  const handleSaveSetup = async () => {
-    if (!binId.trim()) {
+  function onSave() {
+    const trimmed = input.trim();
+    if (!trimmed) {
       Alert.alert('Lỗi', 'Vui lòng nhập ID thùng rác!');
       return;
     }
-
-    setIsSaving(true);
-    try {
-      // Lưu cấu hình Kiosk vào bộ nhớ / state
-      // (Có thể mở rộng gọi service trong src/features/devices)
-      
-      Alert.alert('Thành công', 'Đã lưu cấu hình Kiosk!', [
-        {
-          text: 'Vào màn hình chờ',
-          onPress: () => router.push('/(user)/idle'),
-        },
-      ]);
-    } catch (err) {
-      Alert.alert('Lỗi', 'Không thể lưu cấu hình.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    setBusy(true);
+    // Lưu vào store dùng chung — idle.tsx (và sau này các màn kiosk
+    // khác) đọc từ đây thay vì mỗi màn tự giữ state riêng.
+    setBinId(trimmed);
+    setBusy(false);
+    router.replace('/(user)/idle');
+  }
 
   return (
     <View style={styles.container}>
       <SectionTitle>Cấu hình Kiosk</SectionTitle>
-        <Text style={styles.statusLabel}>Thiết lập thông tin thùng rác và kết nối BLE</Text>
+      <Text style={styles.hint}>Thiết lập thông tin thùng rác và kết nối BLE</Text>
 
       <Card style={styles.card}>
         <Text style={styles.label}>Mã thùng rác (Bin ID):</Text>
         <TextInput
           style={styles.input}
-          value={binId}
-          onChangeText={setBinId}
+          value={input}
+          onChangeText={setInput}
           placeholder="Nhập mã thùng rác..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={colors.textMuted}
         />
 
         <View style={styles.statusBox}>
@@ -55,16 +45,15 @@ export default function KioskSetupScreen() {
           <Text style={styles.statusValue}>Đang bật (EXPO_PUBLIC_MOCK_BLE=1)</Text>
         </View>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.button, isSaving && styles.buttonDisabled]}
-          disabled={isSaving}
-          onPress={handleSaveSetup}
-        >
-          <Text style={styles.buttonText}>
-            {isSaving ? 'Đang lưu...' : 'Lưu cấu hình & Bắt đầu'}
-          </Text>
-        </TouchableOpacity>
+        <Pressable onPress={onSave} disabled={busy}>
+          <GradientView style={[styles.button, busy && styles.buttonDisabled]}>
+            {busy ? (
+              <ActivityIndicator color={colors.textOnPrimary} />
+            ) : (
+              <Text style={styles.buttonText}>Lưu cấu hình & Bắt đầu</Text>
+            )}
+          </GradientView>
+        </Pressable>
       </Card>
     </View>
   );
@@ -74,8 +63,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
     justifyContent: 'center',
+  },
+  hint: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   card: {
     padding: 20,
@@ -84,39 +78,37 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#0f172a',
-    backgroundColor: '#ffffff',
+    color: colors.text,
     marginBottom: 16,
   },
   statusBox: {
     padding: 12,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.neutralBg,
     borderRadius: 8,
     marginBottom: 20,
   },
   statusLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: colors.textMuted,
   },
   statusValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#16a34a',
+    color: colors.success,
     marginTop: 2,
   },
   button: {
     height: 48,
-    backgroundColor: '#2563eb',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -125,7 +117,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: '#ffffff',
+    color: colors.textOnPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
