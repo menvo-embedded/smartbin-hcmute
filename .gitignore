@@ -13,10 +13,7 @@ ios/
 # Biến môi trường — chứa key thật, KHÔNG commit
 .env
 .env.local
-.env.*.local
 *.env
-# nhưng file mẫu (không chứa key thật) PHẢI được commit
-!.env.example
 
 # Log & debug
 npm-debug.*

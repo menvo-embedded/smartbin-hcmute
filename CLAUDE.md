@@ -48,25 +48,17 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_MOCK_BLE=1     # use simulated hardware when no ESP32 is available
 ```
 
-There is no test runner configured — verification is `typecheck` + manual
-on-device testing (see "Testing offline sync" below). `npm run lint` is
-wired in `package.json` but there is no ESLint config file in the repo
-(no `.eslintrc*` or `eslint.config.*`), so it will not run as-is; treat it
-as aspirational until a config is added rather than a working check.
+There is no test runner configured — verification is `typecheck` + `lint` +
+manual on-device testing (see "Testing offline sync" below).
 
 ## Architecture
 
 ### Directory layout (`src/`)
 
 - `app/` — expo-router routes, one file per route, grouped by role:
-  `(auth)/`, `(user)/`, `(household)/`, `(collector)/`, `(admin)/`.
-  `app/_layout.tsx` is the root provider (React Query, auth/sync init);
-  `app/index.tsx` redirects to the right role group after `profile.role`
-  loads. `(household)/` is the actively developed resident-facing flow
-  (home/history/stats/profile + bottom tabs); `(user)/` is the older,
-  thinner resident flow (sort/stats/profile) and is the `default:` fallback
-  in `app/index.tsx`'s role switch. When touching resident-facing screens,
-  check which group is actually intended before assuming `(user)/` is current.
+  `(auth)/`, `(user)/`, `(collector)/`, `(admin)/`. `app/_layout.tsx` is the
+  root provider (React Query, auth/sync init); `app/index.tsx` redirects to
+  the right role group after `profile.role` loads.
 - `core/` — infrastructure only, **must not** know about waste/bins/points:
   `config/` (env), `supabase/` (client + session storage), `storage/`
   (SQLite + migrations, `db.ts`), `sync/` (`queue.ts` + `engine.ts`), `ble/`
@@ -126,17 +118,6 @@ policies gate access by role via `my_role()`; collectors can claim unassigned
 pending tasks. Changing schema requires editing this file first — never
 guess column names.
 
-**Known drift to resolve, not to copy:** the Postgres enum `user_role` here is
-still `('user', 'collector', 'admin')` — it does **not** include `'household'`.
-But the app-level `Role` type (`src/shared/constants/waste.ts`) already lists
-`'household'` as a fourth role, and `app/index.tsx` branches on
-`profile?.role === 'household'`. Until the enum is migrated to add
-`'household'`, no real profile can ever have that role in the database, so
-that branch is currently unreachable in production and only exercisable by
-manually forcing local state. Don't build further on the assumption this is
-already wired end-to-end — flag it and ask before deciding whether to extend
-the enum or fold `(household)/` back into `(user)/`.
-
 ## Do not do without asking
 
 - Do not swap state management (Zustand) or data fetching (TanStack Query)
@@ -145,20 +126,13 @@ the enum or fold `(household)/` back into `(user)/`.
   `supabase/schema.sql` in the same change.
 - Do not delete `MockBinController` or the `EXPO_PUBLIC_MOCK_BLE` branch.
 - Do not expand hardware scope (conveyor belts, multi-bin coordination,
-  etc.) without asking first — minimal hardware scope is the team's own
-  choice (easier to build and demo on time), not a requirement imposed by
-  the advisor, so it can change if the team decides to, but confirm first
-  since it's a large swing in remaining work.
+  etc.) — the minimal scope was already agreed with the advisor.
 - Do not add heavy new dependencies (Redux, MobX, Firebase, etc.) when the
   existing `package.json` libraries can already do the job.
 - If a request seems to conflict with these rules (e.g. "drop SQLite, write
   straight to the server"), ask before proceeding instead of deciding
-  unilaterally. These constraints are the team's own conventions for
-  keeping the code consistent and shippable on time — the advisor only
-  approved the topic, not the app design/architecture/hardware scope — so
-  when the user wants to change direction, even a big one, just confirm
-  their intent and update this file (and `docs/KIEN-TRUC.md`,
-  `supabase/schema.sql`) to match; no need to check if "the advisor approved."
+  unilaterally — these constraints come from the advisor's requirements, not
+  personal preference.
 
 ## Testing offline sync
 

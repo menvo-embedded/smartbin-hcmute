@@ -1,27 +1,20 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '../../features/auth/store';
 import { colors } from '../../theme/colors';
 import { GradientView } from '../../shared/ui';
 
 /** Tài khoản test dùng để demo nhanh, không cần gõ tay — mỗi tài khoản ứng
- * với 1 vai trò thật trong hệ thống (xem `supabase/seed.sql` để gán role).
- * `mode` khớp với lựa chọn ở màn "Chọn chế độ" (`src/app/index.tsx`): vào từ
- * "Cộng đồng" chỉ thấy tài khoản quản lý/nhân viên, vào từ "Hộ gia đình" chỉ
- * thấy tài khoản hộ dân. */
+ * với 1 vai trò thật trong hệ thống (xem `supabase/seed.sql` để gán role). */
 const TEST_ACCOUNTS = [
-  { label: 'Quản lý', email: 'user3@test.com', password: '123456', mode: 'community' as const },
-  { label: 'Nhân viên', email: 'user2@test.com', password: '123456', mode: 'community' as const },
-  { label: 'Hộ gia đình', email: 'user1@test.com', password: '123456', mode: 'household' as const },
+  { label: 'Quản lý', email: 'user3@test.com', password: '123456' },
+  { label: 'Nhân viên', email: 'user2@test.com', password: '123456' },
+  { label: 'Hộ gia đình', email: 'user1@test.com', password: '123456' },
 ];
 
 export default function SignIn() {
   const { signIn } = useAuth();
-  const { mode } = useLocalSearchParams<{ mode?: string }>();
-  // Vào thẳng /(auth)/sign-in không qua màn chọn chế độ (deep link, back
-  // button...) thì không có `mode` — hiện đủ cả 3 tài khoản demo cho an toàn.
-  const visibleAccounts = mode ? TEST_ACCOUNTS.filter((acc) => acc.mode === mode) : TEST_ACCOUNTS;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -49,13 +42,6 @@ export default function SignIn() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.brand}>
-        <Pressable
-          style={styles.backButton}
-          hitSlop={8}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-        >
-          <Text style={styles.backButtonText}>←</Text>
-        </Pressable>
         <Text style={styles.brandText}>SmartBin</Text>
         <Text style={styles.brandSubtext}>Phân loại và thu gom rác thông minh</Text>
       </GradientView>
@@ -90,7 +76,7 @@ export default function SignIn() {
         </Pressable>
 
         <Text style={styles.quickLoginLabel}>Đăng nhập nhanh (demo):</Text>
-        {visibleAccounts.map((acc) => (
+        {TEST_ACCOUNTS.map((acc) => (
           <Pressable
             key={acc.email}
             onPress={() => onQuickLogin(acc)}
@@ -117,20 +103,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: 22,
-    fontWeight: '700',
   },
   brandText: {
     color: colors.textOnPrimary,

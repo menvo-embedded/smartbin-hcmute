@@ -1,7 +1,7 @@
 -- Schema cho Supabase. Chạy trong SQL Editor.
 
 create type user_role as enum ('user', 'collector', 'admin');
-create type waste_type as enum ('huu_co', 'vo_co', 'tai_che');
+create type waste_type as enum ('plastic', 'paper', 'metal', 'other');
 create type task_status as enum ('pending', 'in_progress', 'done');
 create type sort_source as enum ('manual', 'ai');
 
@@ -51,19 +51,23 @@ create table collection_tasks (
   status          task_status not null default 'pending',
   proof_photo_url text,
   note            text,
+  scheduled_date  date not null default current_date,
+  shift           text not null default 'morning' check (shift in ('morning', 'afternoon', 'all_day')),
+  priority        text not null default 'routine' check (priority in ('routine', 'urgent')),
   created_at      timestamptz not null default now(),
   completed_at    timestamptz
 );
 
 create index on sort_events (device_id, created_at desc);
 create index on collection_tasks (assignee_id, status);
+create index on collection_tasks (scheduled_date, shift);
 
 -- Tự tạo công việc thu gom khi một ngăn vượt ngưỡng đầy.
 create or replace function create_task_when_full() returns trigger as $$
 begin
   if new.fill_level >= 0.8 and (old.fill_level is null or old.fill_level < 0.8) then
-    insert into collection_tasks (device_id)
-    select new.device_id
+    insert into collection_tasks (device_id, priority, scheduled_date)
+    select new.device_id, 'urgent', current_date
     where not exists (
       select 1 from collection_tasks
       where device_id = new.device_id and status <> 'done'
@@ -91,6 +95,9 @@ $$ language sql stable security definer;
 create policy "đọc hồ sơ của mình" on profiles
   for select using (id = auth.uid() or my_role() = 'admin');
 
+create policy "admin và chủ tài khoản sửa hồ sơ" on profiles
+  for update using (id = auth.uid() or my_role() = 'admin');
+
 create policy "ai đăng nhập cũng xem được thiết bị" on devices
   for select using (auth.uid() is not null);
 
@@ -99,6 +106,9 @@ create policy "chỉ admin sửa thiết bị" on devices
 
 create policy "ai đăng nhập cũng xem được ngăn rác" on bins
   for select using (auth.uid() is not null);
+
+create policy "chỉ admin cập nhật ngăn rác" on bins
+  for all using (my_role() = 'admin');
 
 create policy "tự ghi sự kiện của mình" on sort_events
   for insert with check (user_id = auth.uid());
@@ -111,6 +121,9 @@ create policy "nhân viên xem việc được giao" on collection_tasks
 
 create policy "nhân viên cập nhật việc của mình" on collection_tasks
   for update using (assignee_id = auth.uid() or my_role() = 'admin');
+
+create policy "admin tạo việc thu gom" on collection_tasks
+  for insert with check (my_role() = 'admin');
 
 -- Cho phép nhận một việc chưa ai nhận (trigger tạo việc không gán assignee_id).
 create policy "nhân viên nhận việc chưa có người" on collection_tasks

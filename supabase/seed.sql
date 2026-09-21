@@ -7,7 +7,7 @@ with new_device as (
 )
 insert into bins (device_id, waste_type, fill_level)
 select id, t.waste_type, 0.2
-from new_device, unnest(array['huu_co','vo_co','tai_che']::waste_type[]) as t(waste_type);
+from new_device, unnest(array['plastic','paper','metal','other']::waste_type[]) as t(waste_type);
 
 -- Cho phép nhân viên thu gom tự nhận một việc chưa ai nhận (RLS gốc chỉ cho
 -- sửa việc đã được giao cho mình, nên việc mới tạo bởi trigger không ai nhận
