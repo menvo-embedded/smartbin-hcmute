@@ -87,15 +87,75 @@ khi nộp.*
     bản Kotlin/Compose Compiler, và font icon chưa được nhúng vào bản build
     Android (cả hai đều đã ghi lại cách sửa trong code để không lặp lại).
 
+## Tuần 6 (19–21/09)
+
+**Mục tiêu:** đổi phân loại rác theo đúng thực tế, tích hợp phần cứng thật,
+mở rộng nhóm làm việc, chuẩn bị và huấn luyện lại model AI.
+
+- **Đổi phân loại rác** từ 4 nhãn theo vật liệu (nhựa/giấy/kim loại/khác)
+  sang 3 nhóm theo đúng cách phân loại rác tại nguồn ở Việt Nam — hữu cơ/vô
+  cơ/tái chế. Đồng bộ đổi cả `src/shared/constants/waste.ts` lẫn enum
+  `waste_type` trong `supabase/schema.sql`.
+- Merge nhánh `feat/household` (hoàn thiện hồ sơ hộ gia đình theo mockup,
+  thêm màn "Chọn chế độ" Cộng đồng/Hộ gia đình trước đăng nhập) và nhánh
+  `nhanh2-giao-dien` (hoàn thiện luồng kiosk: idle/kiosk-setup/thanks) vào
+  `master`. Thêm CODEOWNERS, bắt buộc PR review trước khi vào `master`.
+- Chuẩn hoá cấu hình Supabase env + thông báo lỗi đăng nhập rõ ràng hơn; sửa
+  lỗi build native do lệch phiên bản Kotlin/Compose Compiler (ghim qua
+  `expo-build-properties`).
+- **Tích hợp phần cứng thật (ESP32 + servo) qua BLE** — test trực tiếp trên
+  điện thoại qua USB (scrcpy), mở/đóng ngăn thùng thành công từ app.
+- Đối chiếu kỹ và merge nhánh `feature/collector` của NhanLe (hoàn thiện
+  luồng hộ gia đình: tự chọn thùng ít đầy nhất, hiển thị rõ trạng thái kết
+  nối BLE) — phát hiện và sửa 1 lỗi trùng tên hook (`useSortHistory`) trước
+  khi merge để tránh vỡ màn lịch sử của hộ gia đình. Sửa thêm 2 lỗi phát
+  sinh khi test thật: mất kết nối BLE khi đổi thùng, cảnh báo React do gọi
+  điều hướng trong lúc render ở màn cảm ơn.
+- Đồng bộ thanh tab điều hướng giữa luồng Cộng đồng và Hộ gia đình; sửa lỗi
+  icon bị mất trắng trên toàn app (nguyên nhân thật: thiếu gói
+  `expo-file-system` khiến `expo-font` tải font thất bại âm thầm, không
+  crash nên rất khó phát hiện).
+- **Audit lại toàn bộ dataset AI**: kiểm tra thủ công 453 ảnh rác hỗn hợp
+  chưa rõ nhãn, loại trùng lặp (SHA256 cho trùng hệt, perceptual hash cho
+  gần giống), dựng kiến trúc "source pool" có ghi nguồn gốc từng ảnh, tổng
+  hợp lại thành 18.307 ảnh sạch cho 3 nhóm.
+- **Train lại model AI theo 3 nhóm mới** (MobileNetV2 transfer learning,
+  2 giai đoạn: đóng băng backbone rồi fine-tune), pruning 50% trọng số,
+  quantize INT8. Kết quả: accuracy test 93.42% (tăng so với 91.82% trước
+  pivot), kích thước giảm từ 8.47MB xuống 2.58MB (giảm 3.3 lần).
+- Review kỹ nhánh mới của thành viên Thanh (`feat/app-icon-and-fixes`):
+  phát hiện nhánh dựa trên code cũ (trước khi pivot 3 nhóm, trước khi có
+  role hộ gia đình), nếu merge trực tiếp sẽ làm hỏng nhiều tiến độ đã có —
+  đã **không merge nguyên nhánh**, mà tách riêng và tích hợp thủ công phần
+  tính năng thật sự mới: tab "Phân công" cho admin (gán việc thu gom theo
+  ca/ngày, bảng ca trực nhân viên), chụp ảnh minh chứng thu gom, icon app
+  thật, cấu hình `metro.config.js` (dự án trước đó thiếu hẳn file này).
+
+## Còn tồn đọng, cần làm tiếp
+
+- **Tích hợp model AI (.tflite) vào app thật qua camera** — model đã train
+  và tối ưu xong nhưng chưa nối vào luồng ứng dụng thật.
+- **Benchmark tốc độ suy luận trên điện thoại thật (chip ARM)** — mới đo
+  trên CPU Kaggle (x86), không phản ánh đúng lợi ích tốc độ của INT8 trên
+  di động; đây là phần đồ án giữa kỳ chấm trọng tâm, cần làm sớm.
+- Module quét QR cấu hình WiFi cho ESP32 qua BLE — chưa làm.
+- Sửa `task-detail.tsx` cho đúng nguyên tắc ghi cục bộ trước khi đồng bộ
+  (hiện đang gọi thẳng Supabase — nợ kỹ thuật đã biết từ trước).
+- `src/shared/types/database.ts` có field `owner_id` cho bảng `devices`
+  nhưng `supabase/schema.sql` chưa có cột này — lệch schema có sẵn từ
+  trước, cần bổ sung migration cho khớp.
+- 3 hạng mục "MQTT Broker" trong kế hoạch gốc không còn phù hợp — kiến trúc
+  thực tế app↔ESP32 đi thẳng qua BLE, không qua MQTT broker nào cả, cần
+  cập nhật lại kế hoạch thay vì tính là "trễ tiến độ".
+
 ---
 
 ## Việc dự kiến tuần tới (chưa làm, đang ở bước thiết kế)
 
-Tham khảo chi tiết đầy đủ trong `docs/KE-HOACH.md`:
-
-- Sửa `task-detail.tsx` cho đúng nguyên tắc ghi cục bộ trước khi đồng bộ
-  (hiện đang gọi thẳng Supabase — nợ kỹ thuật đã biết).
+- Nối model AI 3 nhóm (`.tflite` INT8) vào luồng camera thật trong app.
+- Benchmark thật trên điện thoại (so sánh FP32 / pruned / INT8 về tốc độ và
+  độ chính xác) — số liệu bắt buộc phải đo trên máy thật, không dùng số đo
+  từ Kaggle/Colab.
 - Thiết kế cơ chế chống gian lận khi xác nhận thu gom (kết hợp kiểm tra vị
   trí GPS + dữ liệu cảm biến độ đầy thùng) — đã thống nhất hướng, chưa code.
-- Xác nhận với nhóm việc có triển khai luồng AI nhận diện rác (camera điện
-  thoại + TFLite) hay không, và mức độ ưu tiên so với phần app.
+- Bổ sung migration cho cột `owner_id` còn thiếu trong `schema.sql`.
