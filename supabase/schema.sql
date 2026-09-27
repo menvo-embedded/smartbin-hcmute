@@ -216,3 +216,6 @@ create policy "nhân viên nhận việc chưa có người" on collection_tasks
   for update
   using (assignee_id is null and status = 'pending' and my_role() = 'collector')
   with check (assignee_id = auth.uid());
+
+-- Supabase Realtime cho các bảng màn admin theo dõi (RLS vẫn áp dụng).
+alter publication supabase_realtime add table bins, collection_tasks, sort_events;

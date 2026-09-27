@@ -137,7 +137,10 @@ guess column names.
 Server-side triggers: `add_points_on_sort` (+1), `fill_bin_on_sort` (+2% per
 sort), `bins_fill_alert` (≥80% → task), `reward_sorting_quality` (collector rates
 a household bin `good` → +5), `empty_bins_on_done` (task done → bins 0%). Client
-features on top: offline banner (`shared/ui/SyncStatusBanner`), fill forecast
+features on top: admin realtime (`core/supabase/useTableChanges.ts` generic hook
++ `features/admin/hooks/useAdminRealtime.ts`; tables are in the
+`supabase_realtime` publication; the admin map updates markers via
+`window.updateMarkers` instead of reloading), offline banner (`shared/ui/SyncStatusBanner`), fill forecast
 (`features/admin/fillForecast.ts`), collector route optimizer
 (`features/collection/route.ts`, screen `(collector)/route`), impact + badges
 (`features/stats/impact.ts`).

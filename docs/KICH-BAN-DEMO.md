@@ -55,6 +55,13 @@ Supabase Dashboard › Table Editor để chứng minh dữ liệu là thật.
 3. Nói: *"Ảnh lên bucket riêng tư trên Supabase Storage; chỉ nhân viên và admin
    xem được, qua đường dẫn có hạn 1 giờ."*
 
+## Điểm nhấn: realtime 2 máy (1 phút)
+Máy A đăng nhập **Quản lý** (có chấm đỏ "● Trực tiếp"), máy B đăng nhập **Nhân viên**
+hoặc mở kiosk. Máy B bỏ rác / nhận việc / hoàn tất → máy A tự cập nhật trong ~1 giây,
+không cần kéo làm mới, kèm nhãn "Vừa cập nhật: ...". Nói: *"Dùng Supabase Realtime
+(WebSocket lắng nghe thay đổi Postgres); RLS vẫn áp dụng nên mỗi người chỉ nhận dữ
+liệu mình được xem."*
+
 ## 5. Admin nghiệm thu (1 phút)
 Đăng nhập lại **Quản lý** › **Điều phối** → bảng ca thấy "Đã dọn 1/1" → bấm vào
 thùng để xem ảnh nghiệm thu, tên nhân viên, giờ hoàn tất.

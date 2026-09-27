@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import { supabase } from '../../core/supabase/client';
 import { useAuth } from '../../features/auth/store';
 import { buildDeviceMapHtml } from '../../features/devices/buildDeviceMapHtml';
 import { useSortSamples } from '../../features/admin/hooks/useFillForecast';
+import { useAdminRealtime } from '../../features/admin/hooks/useAdminRealtime';
+import { LiveIndicator } from '../../features/admin/components/LiveIndicator';
 import { forecastDevice, formatEta } from '../../features/admin/fillForecast';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD } from '../../shared/constants/waste';
 import {
@@ -95,6 +97,7 @@ export default function Devices() {
     simulateBinFill,
     resetDeviceBins,
   } = useAdminDispatch();
+  const { lastUpdate } = useAdminRealtime();
 
   // Query thiết bị & các ngăn rác
   const {
@@ -157,24 +160,39 @@ export default function Devices() {
       d.latitude != null && d.longitude != null,
   );
 
-  const mapHtml =
-    devicesOnMap.length > 0
-      ? buildDeviceMapHtml(
-          devicesOnMap.map((d) => {
-            const fillLevel = d.bins?.length ? Math.max(...d.bins.map((b) => b.fill_level)) : 0;
-            const isFull = fillLevel >= FILL_ALERT_THRESHOLD;
-            return {
-              id: d.id,
-              lat: d.latitude,
-              lng: d.longitude,
-              title: d.name,
-              subtitle: `${d.area} — ${Math.round(fillLevel * 100)}% đầy`,
-              color: isFull ? colors.danger : colors.primary,
-            };
-          }),
-          { lat: devicesOnMap[0].latitude, lng: devicesOnMap[0].longitude },
-        )
-      : null;
+  const mapMarkers = devicesOnMap.map((d) => {
+    const fillLevel = d.bins?.length ? Math.max(...d.bins.map((b) => b.fill_level)) : 0;
+    const isFull = fillLevel >= FILL_ALERT_THRESHOLD;
+    return {
+      id: d.id,
+      lat: d.latitude,
+      lng: d.longitude,
+      title: d.name,
+      subtitle: `${d.area} — ${Math.round(fillLevel * 100)}% đầy`,
+      color: isFull ? colors.danger : colors.primary,
+    };
+  });
+
+  // Chỉ dựng lại trang bản đồ khi danh sách thùng đổi; mức đầy đổi (realtime)
+  // thì đẩy marker mới vào trang đang mở, không tải lại bản đồ.
+  const mapMarkersRef = useRef(mapMarkers);
+  mapMarkersRef.current = mapMarkers;
+  const mapDeviceKey = mapMarkers.map((m) => m.id).join(',');
+  const mapHtml = useMemo(
+    () =>
+      mapMarkersRef.current.length > 0
+        ? buildDeviceMapHtml(mapMarkersRef.current, {
+            lat: mapMarkersRef.current[0].lat,
+            lng: mapMarkersRef.current[0].lng,
+          })
+        : null,
+    [mapDeviceKey],
+  );
+  const mapRef = useRef<WebView>(null);
+  const mapMarkersJson = JSON.stringify(mapMarkers);
+  useEffect(() => {
+    mapRef.current?.injectJavaScript(`window.updateMarkers && window.updateMarkers(${mapMarkersJson}); true;`);
+  }, [mapMarkersJson]);
 
   // Thao tác giao việc từ modal
   const handleConfirmAssign = (taskId: string, collectorId: string) => {
@@ -274,6 +292,8 @@ export default function Devices() {
         pendingTaskCount={pendingTasksCount}
       />
 
+      <LiveIndicator lastUpdate={lastUpdate} />
+
       {/* Thanh công cụ Demo & Báo cáo */}
       <View style={styles.demoBar}>
         <Pressable
@@ -301,6 +321,7 @@ export default function Devices() {
                 {mapHtml && (
                   <View style={styles.mapWrapper}>
                     <WebView
+                      ref={mapRef}
                       style={styles.map}
                       originWhitelist={['*']}
                       source={{ html: mapHtml }}

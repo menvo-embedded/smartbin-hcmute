@@ -11,6 +11,8 @@ export interface DeviceMapMarker {
 /**
  * Dựng trang HTML nhúng Leaflet + OpenStreetMap để hiển thị trong WebView.
  * Dùng OSM thay vì Google Maps để không cần API key / tài khoản thanh toán.
+ * Sau khi tải, gọi `window.updateMarkers(markers)` (injectJavaScript) để
+ * cập nhật marker mà không dựng lại trang.
  */
 export function buildDeviceMapHtml(markers: DeviceMapMarker[], center: { lat: number; lng: number }): string {
   const markersJson = JSON.stringify(markers).replace(/</g, '\\u003c');
@@ -36,17 +38,28 @@ export function buildDeviceMapHtml(markers: DeviceMapMarker[], center: { lat: nu
         attribution: '&copy; OpenStreetMap contributors',
       }).addTo(map);
 
-      var markers = ${markersJson};
-      markers.forEach(function (m) {
-        var icon = L.divIcon({
+      function pinIcon(color) {
+        return L.divIcon({
           className: '',
-          html: '<div class="device-pin" style="background:' + m.color + ';"></div>',
+          html: '<div class="device-pin" style="background:' + color + ';"></div>',
           iconSize: [18, 18],
         });
-        L.marker([m.lat, m.lng], { icon: icon })
-          .addTo(map)
-          .bindPopup('<b>' + m.title + '</b>' + m.subtitle);
-      });
+      }
+
+      // Giữ marker theo id để app cập nhật màu/nội dung tại chỗ (realtime)
+      // qua window.updateMarkers, không phải tải lại cả bản đồ.
+      var byId = {};
+      window.updateMarkers = function (list) {
+        list.forEach(function (m) {
+          var popup = '<b>' + m.title + '</b>' + m.subtitle;
+          if (byId[m.id]) {
+            byId[m.id].setIcon(pinIcon(m.color)).setPopupContent(popup);
+          } else {
+            byId[m.id] = L.marker([m.lat, m.lng], { icon: pinIcon(m.color) }).addTo(map).bindPopup(popup);
+          }
+        });
+      };
+      window.updateMarkers(${markersJson});
     </script>
   </body>
 </html>`;
