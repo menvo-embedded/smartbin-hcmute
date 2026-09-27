@@ -39,8 +39,12 @@ export async function markFailed(id: number, error: string) {
   );
 }
 
-export async function pendingCount() {
+/** Số thao tác còn chờ gửi (bỏ qua các dòng đã thử quá maxAttempts lần). */
+export async function pendingCount(maxAttempts = Infinity) {
   const db = await getDb();
-  const row = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM sync_queue`);
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM sync_queue WHERE attempts < ?`,
+    Number.isFinite(maxAttempts) ? maxAttempts : Number.MAX_SAFE_INTEGER,
+  );
   return row?.n ?? 0;
 }

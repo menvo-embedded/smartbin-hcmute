@@ -2,26 +2,43 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../features/auth/store';
+import type { Role } from '../../shared/constants/waste';
 import { colors } from '../../theme/colors';
 import { GradientView } from '../../shared/ui';
 
-/** Tài khoản test dùng để demo nhanh, không cần gõ tay — mỗi tài khoản ứng
- * với 1 vai trò thật trong hệ thống (xem `supabase/seed.sql` để gán role).
- * `mode` khớp với lựa chọn ở màn "Chọn chế độ" (`src/app/index.tsx`): vào từ
- * "Cộng đồng" chỉ thấy tài khoản quản lý/nhân viên, vào từ "Hộ gia đình" chỉ
- * thấy tài khoản hộ dân. */
-const TEST_ACCOUNTS = [
-  { label: 'Quản lý', email: 'user3@test.com', password: '123456', mode: 'community' as const },
-  { label: 'Nhân viên', email: 'user2@test.com', password: '123456', mode: 'community' as const },
-  { label: 'Hộ gia đình', email: 'user1@test.com', password: '123456', mode: 'household' as const },
-];
+type Mode = 'community' | 'household';
+
+/**
+ * Hai chế độ tách riêng: Cộng đồng = hệ thống thùng rác công cộng (nhân viên
+ * thu gom, quản lý, kiosk công khai); Hộ gia đình = thùng rác riêng của từng
+ * hộ. Mỗi chế độ chỉ nhận đúng các vai trò của nó.
+ */
+const MODES: Record<Mode, { title: string; roles: Role[]; wrongRole: string }> = {
+  community: {
+    title: 'Cộng đồng',
+    roles: ['collector', 'admin'],
+    wrongRole: 'Tài khoản này không thuộc chế độ Cộng đồng. Hãy quay lại chọn "Hộ gia đình".',
+  },
+  household: {
+    title: 'Hộ gia đình',
+    roles: ['household'],
+    wrongRole: 'Tài khoản này không phải tài khoản hộ gia đình. Hãy quay lại chọn "Cộng đồng".',
+  },
+};
+
+/** Tài khoản test để demo nhanh, không cần gõ tay. */
+const TEST_ACCOUNTS: Record<Mode, { label: string; email: string; password: string }[]> = {
+  community: [
+    { label: 'Quản lý', email: 'user3@test.com', password: '123456' },
+    { label: 'Nhân viên thu gom', email: 'user2@test.com', password: '123456' },
+  ],
+  household: [{ label: 'Hộ gia đình', email: 'user1@test.com', password: '123456' }],
+};
 
 export default function SignIn() {
-  const { signIn } = useAuth();
-  const { mode } = useLocalSearchParams<{ mode?: string }>();
-  // Vào thẳng /(auth)/sign-in không qua màn chọn chế độ (deep link, back
-  // button...) thì không có `mode` — hiện đủ cả 3 tài khoản demo cho an toàn.
-  const visibleAccounts = mode ? TEST_ACCOUNTS.filter((acc) => acc.mode === mode) : TEST_ACCOUNTS;
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const mode: Mode = params.mode === 'household' ? 'household' : 'community';
+  const { signIn, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +48,12 @@ export default function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      await signIn(loginEmail, loginPassword);
+      const role = await signIn(loginEmail, loginPassword);
+      if (!role || !MODES[mode].roles.includes(role)) {
+        await signOut();
+        setError(MODES[mode].wrongRole);
+        return;
+      }
       router.replace('/');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Đăng nhập thất bại');
@@ -40,7 +62,7 @@ export default function SignIn() {
     }
   }
 
-  function onQuickLogin(acc: (typeof TEST_ACCOUNTS)[number]) {
+  function onQuickLogin(acc: (typeof TEST_ACCOUNTS)[Mode][number]) {
     setEmail(acc.email);
     setPassword(acc.password);
     onSubmit(acc.email, acc.password);
@@ -49,19 +71,15 @@ export default function SignIn() {
   return (
     <View style={styles.screen}>
       <GradientView style={styles.brand}>
-        <Pressable
-          style={styles.backButton}
-          hitSlop={8}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-        >
-          <Text style={styles.backButtonText}>←</Text>
+        <Pressable onPress={() => router.replace('/')} hitSlop={8} style={styles.back}>
+          <Text style={styles.backText}>← Chọn chế độ</Text>
         </Pressable>
         <Text style={styles.brandText}>SmartBin</Text>
         <Text style={styles.brandSubtext}>Phân loại và thu gom rác thông minh</Text>
       </GradientView>
 
       <View style={styles.form}>
-        <Text style={styles.formTitle}>Đăng nhập</Text>
+        <Text style={styles.formTitle}>Đăng nhập · {MODES[mode].title}</Text>
 
         <TextInput
           placeholder="Email"
@@ -90,7 +108,7 @@ export default function SignIn() {
         </Pressable>
 
         <Text style={styles.quickLoginLabel}>Đăng nhập nhanh (demo):</Text>
-        {visibleAccounts.map((acc) => (
+        {TEST_ACCOUNTS[mode].map((acc) => (
           <Pressable
             key={acc.email}
             onPress={() => onQuickLogin(acc)}
@@ -101,6 +119,17 @@ export default function SignIn() {
             <Text style={styles.secondaryButtonEmail}>{acc.email}</Text>
           </Pressable>
         ))}
+
+        {mode === 'community' && (
+          <Pressable
+            onPress={() => router.push('/(user)/idle')}
+            disabled={busy}
+            style={[styles.secondaryButton, busy && styles.disabled]}
+          >
+            <Text style={styles.secondaryButtonText}>Mở kiosk bỏ rác công cộng</Text>
+            <Text style={styles.secondaryButtonEmail}>Cho người dân, không cần đăng nhập</Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -111,26 +140,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  back: {
+    marginBottom: 12,
+  },
+  backText: {
+    color: colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   brand: {
-    paddingTop: 80,
+    paddingTop: 56,
     paddingBottom: 40,
     paddingHorizontal: 24,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: colors.textOnPrimary,
-    fontSize: 22,
-    fontWeight: '700',
   },
   brandText: {
     color: colors.textOnPrimary,

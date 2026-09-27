@@ -1,24 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { supabase } from '../../core/supabase/client';
-import { getDb } from '../../core/storage/db';
 import { useAuth } from '../../features/auth/store';
 import { useSortAction } from '../../features/sorting/useSortAction';
+import { useSortHistory } from '../../features/sorting/useSortHistory';
 import { WasteTypeGrid } from '../../features/sorting/WasteTypeGrid';
-import { AiScanPlaceholder } from '../../features/household/AiScanPlaceholder';
+import { CollectionFeedback } from '../../features/household/CollectionFeedback';
+import { useImpact } from '../../features/stats/useImpact';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
 import { colors } from '../../theme/colors';
 import { Card, StatCard, StatusBadge, SectionTitle, EmptyState, GradientView } from '../../shared/ui';
-
-interface LocalSortRow {
-  local_id: string;
-  waste_type: WasteType;
-  synced: number;
-  created_at: string;
-}
 
 type DeviceWithBins = Device & { bins: Bin[] };
 
@@ -31,6 +25,7 @@ export default function HouseholdHome() {
     queryKey: ['household_devices', userId],
     enabled: !!userId,
     queryFn: async () => {
+      if (!userId) return [];
       const { data, error } = await supabase
         .from('devices')
         .select('*, bins(*)')
@@ -43,32 +38,16 @@ export default function HouseholdHome() {
   const device = devices?.[0] ?? null;
   const { sort, busy, error: sortError } = useSortAction(device?.id ?? '');
   const [lastResult, setLastResult] = useState<string | null>(null);
-  const [history, setHistory] = useState<LocalSortRow[]>([]);
-  const [dbError, setDbError] = useState<string | null>(null);
-
-  const loadHistory = useCallback(async () => {
-    try {
-      const db = await getDb();
-      const rows = await db.getAllAsync<LocalSortRow>(
-        `SELECT local_id, waste_type, synced, created_at FROM sort_events ORDER BY created_at DESC LIMIT 10`,
-      );
-      setHistory(rows);
-      setDbError(null);
-    } catch (e) {
-      setDbError(e instanceof Error ? e.message : 'Không đọc được lịch sử cục bộ');
-    }
-  }, []);
-
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  const { rows: allHistory, error: dbError, reload: loadHistory } = useSortHistory(null);
+  const history = allHistory.slice(0, 5);
+  const { impact, reload: reloadImpact } = useImpact();
 
   async function onPickType(type: WasteType) {
     if (!device) return;
     setLastResult(null);
     const ok = await sort(type, 'manual');
     setLastResult(ok ? `Đã ghi nhận: ${WASTE_LABELS[type]}` : null);
-    await loadHistory();
+    await Promise.all([loadHistory(), reloadImpact()]);
   }
 
   const fillLevel = device?.bins?.length ? Math.max(...device.bins.map((b) => b.fill_level)) : 0;
@@ -113,11 +92,7 @@ export default function HouseholdHome() {
           />
         }
       >
-        <View style={{ marginTop: 16 }}>
-          <AiScanPlaceholder />
-        </View>
-
-        {isLoading && <ActivityIndicator style={{ marginTop: 8 }} />}
+        {isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
 
         {!isLoading && error && (
           <Text style={{ color: colors.danger }}>
@@ -133,7 +108,7 @@ export default function HouseholdHome() {
         )}
 
         {device && (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 10, marginTop: 16 }}>
             <Card style={styles.deviceCard}>
               <View style={styles.deviceRow}>
                 <View>
@@ -158,8 +133,26 @@ export default function HouseholdHome() {
         {lastResult && <Text style={{ color: colors.success, fontWeight: '600' }}>{lastResult}</Text>}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <StatCard label="Tổng số lần bỏ rác" value={String(history.length)} hint="10 lần gần nhất" />
+          <Pressable onPress={() => router.push('/(household)/profile')}>
+            <StatCard label="Điểm tích luỹ" value={String(profile?.points ?? 0)} hint="+1 điểm mỗi lần bỏ rác" />
+          </Pressable>
+          <Pressable onPress={() => router.push('/(household)/profile')}>
+            <StatCard
+              label="🔥 Chuỗi ngày"
+              value={`${impact?.streakDays ?? 0} ngày`}
+              hint="phân loại liên tiếp"
+            />
+          </Pressable>
+          <Pressable onPress={() => router.push('/(household)/profile')}>
+            <StatCard
+              label="🌱 CO₂ giảm được"
+              value={`${(impact?.co2SavedKg ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kg`}
+              hint="ước tính"
+            />
+          </Pressable>
         </ScrollView>
+
+        {device && <CollectionFeedback deviceId={device.id} />}
 
         <View style={{ gap: 10 }}>
           <View style={styles.historyHeaderRow}>

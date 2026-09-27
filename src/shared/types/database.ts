@@ -46,8 +46,13 @@ export interface CollectionTask {
   status: 'pending' | 'in_progress' | 'done';
   proof_photo_url: string | null;
   note: string | null;
+  scheduled_date?: string | null;
+  shift?: 'morning' | 'afternoon' | 'all_day' | null;
+  priority?: 'routine' | 'urgent' | null;
   created_at: string;
   completed_at: string | null;
+  /** Nhân viên chấm khi thu gom thùng của hộ gia đình. */
+  sorting_quality?: 'good' | 'mixed' | null;
 }
 
 export interface Database {

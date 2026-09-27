@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../features/auth/store';
 import { ChangePasswordModal } from '../../features/auth/ChangePasswordModal';
+import { useImpact } from '../../features/stats/useImpact';
+import { ImpactCard } from '../../features/stats/ImpactCard';
+import { BadgeGrid } from '../../features/stats/BadgeGrid';
 import { ROLE_LABELS } from '../../shared/constants/waste';
 import { colors } from '../../theme/colors';
-import { Card, ProgressBar, StatusBadge, GradientView } from '../../shared/ui';
+import { Card, ProgressBar, StatusBadge, GradientView, SectionTitle } from '../../shared/ui';
 
 const POINTS_PER_TIER = 100;
 
@@ -14,6 +17,7 @@ export default function HouseholdProfile() {
   const profile = useAuth((s) => s.profile);
   const signOut = useAuth((s) => s.signOut);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const { impact } = useImpact();
 
   const points = profile?.points ?? 0;
   const nextTier = (Math.floor(points / POINTS_PER_TIER) + 1) * POINTS_PER_TIER;
@@ -24,20 +28,11 @@ export default function HouseholdProfile() {
       <GradientView style={styles.header}>
         <View>
           <Text style={styles.title}>Hộ gia đình</Text>
-          <Text style={styles.subtitle}>Quản lý thông tin và thành viên</Text>
+          <Text style={styles.subtitle}>Thông tin tài khoản và điểm thưởng</Text>
         </View>
-        <Pressable
-          hitSlop={8}
-          onPress={() => Alert.alert('Thông báo', 'Chưa có thông báo mới.')}
-        >
-          <View style={styles.bellWrap}>
-            <Ionicons name="notifications-outline" size={22} color={colors.textOnPrimary} />
-            <View style={styles.bellDot} />
-          </View>
-        </Pressable>
       </GradientView>
 
-      <View style={styles.body}>
+      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={styles.identity}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(profile?.full_name ?? '?').charAt(0).toUpperCase()}</Text>
@@ -67,6 +62,16 @@ export default function HouseholdProfile() {
           </View>
         </GradientView>
 
+        {impact && (
+          <>
+            <View style={{ height: 20 }} />
+            <ImpactCard impact={impact} />
+            <View style={{ height: 20 }} />
+            <SectionTitle>Huy hiệu</SectionTitle>
+            <BadgeGrid badges={impact.badges} />
+          </>
+        )}
+
         <View style={{ height: 20 }} />
 
         <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -75,13 +80,6 @@ export default function HouseholdProfile() {
             label="Đổi mật khẩu"
             description="Cập nhật mật khẩu để bảo vệ tài khoản"
             onPress={() => setPasswordModalOpen(true)}
-          />
-          <View style={styles.divider} />
-          <SettingsRow
-            icon="globe-outline"
-            label="Ngôn ngữ: Tiếng Việt"
-            description="Thay đổi ngôn ngữ ứng dụng"
-            onPress={() => Alert.alert('Ngôn ngữ', 'Ứng dụng hiện chỉ hỗ trợ Tiếng Việt.')}
           />
           <View style={styles.divider} />
           <SettingsRow
@@ -95,7 +93,7 @@ export default function HouseholdProfile() {
             }}
           />
         </Card>
-      </View>
+      </ScrollView>
 
       <ChangePasswordModal visible={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </View>
@@ -156,23 +154,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.primaryLight,
     marginTop: 4,
-  },
-  bellWrap: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bellDot: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.danger,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
   },
   body: {
     paddingHorizontal: 20,

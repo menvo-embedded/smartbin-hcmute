@@ -1,0 +1,32 @@
+// FIRMWARE TEST TẠM THỜI — chỉ để kiểm tra servo chân 13 có quay được bằng
+// phần cứng không, không liên quan BLE/app. Test xong đổi lại bằng
+// main.cpp.bak (bản BLE thật).
+
+#include <Arduino.h>
+#include <ESP32Servo.h>
+
+const int SERVO_PIN = 13;
+Servo testServo;
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+  Serial.println("=== TEST SERVO CHAN 13 ===");
+
+  testServo.attach(SERVO_PIN);
+  Serial.println("Da attach servo, bat dau quay...");
+}
+
+void loop() {
+  Serial.println("-> Quay 0 do");
+  testServo.write(0);
+  delay(1500);
+
+  Serial.println("-> Quay 90 do");
+  testServo.write(90);
+  delay(1500);
+
+  Serial.println("-> Quay 180 do");
+  testServo.write(180);
+  delay(1500);
+}

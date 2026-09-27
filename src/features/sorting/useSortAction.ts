@@ -2,6 +2,7 @@ import { useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../core/storage/db';
 import { enqueue } from '../../core/sync/queue';
+import { flush } from '../../core/sync/engine';
 import { binController } from '../../core/ble/binController';
 import { useAuth } from '../auth/store';
 import type { WasteType } from '../../shared/constants/waste';
@@ -44,6 +45,11 @@ export function useSortAction(deviceId: string) {
         confidence: confidence ?? null,
         created_at: createdAt,
       });
+
+      // Có mạng thì đẩy lên ngay (mất mạng thì flush thoát sớm, sự kiện vẫn
+      // nằm trong hàng đợi). Xong thì tải lại hồ sơ để thấy điểm server cộng.
+      await flush();
+      void useAuth.getState().reloadProfile();
 
       return true;
     } catch (e) {

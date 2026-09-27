@@ -37,3 +37,8 @@ okhttp3.internal.connection.RealCall$AsyncCall
 # Editor
 .vscode/
 .idea/
+
+# PlatformIO build output
+.pio/
+# Supabase CLI link state
+supabase/.temp/

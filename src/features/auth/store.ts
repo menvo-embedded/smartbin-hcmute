@@ -12,8 +12,10 @@ interface AuthState {
   loading: boolean;
   role: Role | null;
   init: () => () => void;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** Đăng nhập, trả về vai trò của tài khoản (null nếu chưa có hồ sơ). */
+  signIn: (email: string, password: string) => Promise<Role | null>;
   signOut: () => Promise<void>;
+  reloadProfile: () => Promise<void>;
 }
 
 export const useAuth = create<AuthState>((set, get) => ({
@@ -44,13 +46,23 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!isEnvConfigured) {
       throw new Error('Thiếu cấu hình Supabase. Hãy kiểm tra file .env (xem .env.example).');
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(toSignInErrorMessage(error));
+    const { data: row } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+    const profile = row as Profile | null;
+    if (profile) set({ profile });
+    return profile?.role ?? null;
   },
 
   signOut: async () => {
     await supabase.auth.signOut();
     set({ session: null, profile: null });
+  },
+
+  /** Tải lại hồ sơ (vd. điểm thưởng vừa được trigger cộng trên server). */
+  reloadProfile: async () => {
+    const userId = get().session?.user.id;
+    if (userId) await loadProfile(set, userId);
   },
 }));
 

@@ -36,9 +36,9 @@ export default function Entry() {
     }
   }
 
-  // Chưa đăng nhập: cho chọn chế độ trước khi vào màn đăng nhập — "Cộng đồng"
-  // vào thẳng luồng công khai (không cần tài khoản), "Hộ gia đình" mới cần
-  // đăng nhập vì phải biết gắn với hộ nào để tính điểm/lịch sử riêng.
+  // Chưa đăng nhập: chọn chế độ. "Cộng đồng" = hệ thống thùng công cộng
+  // (nhân viên thu gom, quản lý, và kiosk công khai không cần tài khoản);
+  // "Hộ gia đình" = thùng riêng của từng hộ, tính điểm/lịch sử riêng.
   return <ModeSelect />;
 }
 
@@ -61,11 +61,13 @@ function ModeSelect() {
         <ModeCard
           icon="people"
           label="Cộng đồng"
+          description="Thùng rác công cộng · Nhân viên thu gom · Quản lý"
           onPress={() => router.push({ pathname: '/(auth)/sign-in', params: { mode: 'community' } })}
         />
         <ModeCard
           icon="home"
           label="Hộ gia đình"
+          description="Thùng rác riêng của gia đình, tích điểm"
           onPress={() => router.push({ pathname: '/(auth)/sign-in', params: { mode: 'household' } })}
         />
       </View>
@@ -76,10 +78,12 @@ function ModeSelect() {
 function ModeCard({
   icon,
   label,
+  description,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  description: string;
   onPress: () => void;
 }) {
   return (
@@ -87,7 +91,10 @@ function ModeCard({
       <View style={styles.cardIconWrap}>
         <Ionicons name={icon} size={28} color={colors.primary} />
       </View>
-      <Text style={styles.cardLabel}>{label}</Text>
+      <View style={styles.cardText}>
+        <Text style={styles.cardLabel}>{label}</Text>
+        <Text style={styles.cardDescription}>{description}</Text>
+      </View>
       <View style={styles.cardChevronWrap}>
         <Ionicons name="chevron-forward" size={16} color={colors.primary} />
       </View>
@@ -170,8 +177,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardLabel: {
+  cardText: {
     flex: 1,
+    gap: 2,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  cardLabel: {
     fontSize: 17,
     fontWeight: '700',
     color: colors.primary,

@@ -23,3 +23,10 @@ export function formatRelativeTime(isoDate: string): string {
   }
   return 'vừa xong';
 }
+
+/** "YYYY-MM-DD" theo giờ trên máy (toISOString là giờ UTC, lệch ngày ở VN trước 7h sáng). */
+export function toLocalDateString(d: Date = new Date()): string {
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}

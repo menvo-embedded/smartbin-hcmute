@@ -62,11 +62,14 @@ as aspirational until a config is added rather than a working check.
   `(auth)/`, `(user)/`, `(household)/`, `(collector)/`, `(admin)/`.
   `app/_layout.tsx` is the root provider (React Query, auth/sync init);
   `app/index.tsx` redirects to the right role group after `profile.role`
-  loads. `(household)/` is the actively developed resident-facing flow
-  (home/history/stats/profile + bottom tabs); `(user)/` is the older,
-  thinner resident flow (sort/stats/profile) and is the `default:` fallback
-  in `app/index.tsx`'s role switch. When touching resident-facing screens,
-  check which group is actually intended before assuming `(user)/` is current.
+  loads. The first screen splits two modes: **Cộng đồng** (public bins:
+  collector/admin sign-in + the kiosk) and **Hộ gia đình**; `(auth)/sign-in`
+  takes a `mode` param and rejects accounts whose role doesn't belong to it.
+  `(household)/` is the signed-in resident flow (role `household`,
+  home/history/stats/profile + bottom tabs). `(user)/` is the public
+  community kiosk (setup → idle → sort → thanks) and runs **without a
+  session** — RLS grants the `anon` role read access to devices/bins and
+  insert of `sort_events` with `user_id = null`; tabs are hidden in kiosk.
 - `core/` — infrastructure only, **must not** know about waste/bins/points:
   `config/` (env), `supabase/` (client + session storage), `storage/`
   (SQLite + migrations, `db.ts`), `sync/` (`queue.ts` + `engine.ts`), `ble/`
@@ -118,24 +121,30 @@ normal JS/TS convention.
 
 ### Database (Supabase, `supabase/schema.sql`)
 
-Tables: `profiles` (role: user/collector/admin, points), `devices`,
+Tables: `profiles` (role: user/collector/admin/household, points), `devices` (`owner_id` = household that owns the bin),
 `bins` (fill_level per device+waste_type), `sort_events` (has `local_id` for
 dedup on re-sync), `collection_tasks`. A trigger (`create_task_when_full`)
-auto-creates a `collection_tasks` row when `bins.fill_level >= 0.8`. RLS
+auto-creates an urgent `collection_tasks` row when `bins.fill_level` crosses 0.8;
+`add_points_on_sort` gives a household +1 point per `sort_events` insert. Waste
+types are `huu_co/vo_co/tai_che`. Dates use Vietnam time
+(`now() at time zone 'Asia/Ho_Chi_Minh'`), not `current_date` (UTC). Proof
+photos go to the private `proofs` bucket; DB stores `storage://proofs/<path>`
+and the app resolves a signed URL (`core/supabase/storage.ts`). RLS
 policies gate access by role via `my_role()`; collectors can claim unassigned
 pending tasks. Changing schema requires editing this file first — never
 guess column names.
 
-**Known drift to resolve, not to copy:** the Postgres enum `user_role` here is
-still `('user', 'collector', 'admin')` — it does **not** include `'household'`.
-But the app-level `Role` type (`src/shared/constants/waste.ts`) already lists
-`'household'` as a fourth role, and `app/index.tsx` branches on
-`profile?.role === 'household'`. Until the enum is migrated to add
-`'household'`, no real profile can ever have that role in the database, so
-that branch is currently unreachable in production and only exercisable by
-manually forcing local state. Don't build further on the assumption this is
-already wired end-to-end — flag it and ask before deciding whether to extend
-the enum or fold `(household)/` back into `(user)/`.
+Server-side triggers: `add_points_on_sort` (+1), `fill_bin_on_sort` (+2% per
+sort), `bins_fill_alert` (≥80% → task), `reward_sorting_quality` (collector rates
+a household bin `good` → +5), `empty_bins_on_done` (task done → bins 0%). Client
+features on top: offline banner (`shared/ui/SyncStatusBanner`), fill forecast
+(`features/admin/fillForecast.ts`), collector route optimizer
+(`features/collection/route.ts`, screen `(collector)/route`), impact + badges
+(`features/stats/impact.ts`).
+
+Migrations already applied to the live DB live in `supabase/migrations_manual/`
+(each is reflected in `schema.sql`). Demo data: `supabase/seed_demo.sql` —
+re-running adds another batch (and more points).
 
 ## Do not do without asking
 

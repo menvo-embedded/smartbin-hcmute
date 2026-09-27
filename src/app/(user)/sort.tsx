@@ -1,29 +1,33 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { supabase } from '../../core/supabase/client';
-import { getDb } from '../../core/storage/db';
 import { useAuth } from '../../features/auth/store';
 import { useSortAction } from '../../features/sorting/useSortAction';
+import { useSortStats } from '../../features/sorting/useSortStats';
+import { useBinConnection } from '../../features/sorting/useBinConnection';
+import { useKioskConfig } from '../../features/devices/kioskConfigStore';
 import { WASTE_TYPES, WASTE_LABELS, WASTE_ICONS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
 import { colors } from '../../theme/colors';
 import { Card, StatCard, StatusBadge, SectionTitle, EmptyState, GradientView } from '../../shared/ui';
 
-interface LocalSortRow {
-  local_id: string;
-  waste_type: WasteType;
-  synced: number;
-  created_at: string;
-}
-
 type DeviceWithBins = Device & { bins: Bin[] };
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+function deviceFillLevel(d: DeviceWithBins) {
+  return d.bins?.length ? Math.max(...d.bins.map((b) => b.fill_level)) : 0;
+}
 
 export default function Sort() {
   const profile = useAuth((s) => s.profile);
   const signOut = useAuth((s) => s.signOut);
+  // Không có phiên đăng nhập = đang chạy kiosk cộng đồng công khai.
+  const isKiosk = useAuth((s) => !s.session);
+  const kioskBinCode = useKioskConfig((s) => s.binId);
 
   const { data: devices, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['devices'],
@@ -36,68 +40,95 @@ export default function Sort() {
 
   const [deviceId, setDeviceId] = useState<string | null>(null);
   useEffect(() => {
-    if (!deviceId && devices && devices.length > 0) setDeviceId(devices[0].id);
-  }, [devices, deviceId]);
+    // Mặc định chọn bin ít đầy nhất, không phải bin đầu tiên trong danh
+    // sách — tránh người dùng lỡ tay chọn nhầm một bin gần đầy làm mặc định.
+    if (!deviceId && devices && devices.length > 0) {
+      // Kiosk đã cấu hình mã thùng thì chọn đúng thùng đó.
+      const kioskDevice = isKiosk ? devices.find((d) => d.code === kioskBinCode) : undefined;
+      if (kioskDevice) {
+        setDeviceId(kioskDevice.id);
+        return;
+      }
+      const leastFull = [...devices].sort((a, b) => deviceFillLevel(a) - deviceFillLevel(b))[0];
+      setDeviceId(leastFull.id);
+    }
+  }, [devices, deviceId, isKiosk, kioskBinCode]);
 
   const { sort, busy, error } = useSortAction(deviceId ?? '');
-  const [lastResult, setLastResult] = useState<string | null>(null);
-  const [history, setHistory] = useState<LocalSortRow[]>([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0 });
-
-  const loadHistory = useCallback(async () => {
-    const db = await getDb();
-    const rows = await db.getAllAsync<LocalSortRow>(
-      `SELECT local_id, waste_type, synced, created_at FROM sort_events ORDER BY created_at DESC LIMIT 10`,
-    );
-    setHistory(rows);
-
-    const totalRow = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM sort_events`);
-    const pendingRow = await db.getFirstAsync<{ n: number }>(
-      `SELECT COUNT(*) AS n FROM sort_events WHERE synced = 0`,
-    );
-    setStats({ total: totalRow?.n ?? 0, pending: pendingRow?.n ?? 0 });
-  }, []);
+  const { history, stats, reload: loadHistory } = useSortStats();
+  const { status: bleStatus, error: bleError, connect: connectBin, disconnect: disconnectBin } = useBinConnection();
 
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+    if (!deviceId) return;
+    connectBin();
+    // Ngắt kết nối cũ khi đổi bin (hoặc rời màn hình) — ESP32 chỉ quảng bá
+    // lại khi thực sự bị ngắt, nếu không lần quét kế tiếp sẽ không thấy nó.
+    return () => {
+      disconnectBin();
+    };
+  }, [deviceId, connectBin, disconnectBin]);
 
   async function onPickType(type: WasteType) {
     if (!deviceId) return;
-    setLastResult(null);
     const ok = await sort(type, 'manual');
-    setLastResult(ok ? `Đã ghi nhận: ${WASTE_LABELS[type]}` : null);
     await loadHistory();
+    if (ok) {
+      // Bỏ rác thành công → sang màn cảm ơn, tự quay lại đúng màn này
+      // (không phải màn chờ kiosk công khai, vì đang đăng nhập ở đây).
+      // Kiosk thì quay về màn chờ cho người kế tiếp.
+      if (isKiosk) router.push('/(user)/thanks');
+      else router.push({ pathname: '/(user)/thanks', params: { returnTo: '/(user)/sort' } });
+    }
   }
 
   return (
     <View style={styles.screen}>
-      <GradientView style={styles.header}>
-        <Pressable style={styles.identity} onPress={() => router.push('/(user)/profile')}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(profile?.full_name ?? '?').charAt(0).toUpperCase()}</Text>
+      {isKiosk ? (
+        <GradientView style={styles.header}>
+          <View style={styles.identity}>
+            <View style={styles.avatar}>
+              <Ionicons name="people" size={20} color={colors.textOnPrimary} />
+            </View>
+            <View>
+              <Text style={styles.greeting}>Chế độ cộng đồng</Text>
+              <Text style={styles.points}>Chọn thùng và loại rác để bỏ</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.greeting}>Xin chào, {profile?.full_name ?? '...'}</Text>
-            <Text style={styles.points}>Điểm thưởng: {profile?.points ?? 0}</Text>
-          </View>
-        </Pressable>
 
-        <View style={styles.headerActions}>
-          <Pressable onPress={() => router.push('/(user)/stats')} hitSlop={8}>
-            <Text style={styles.headerAction}>Thống kê</Text>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.replace('/')} hitSlop={8}>
+              <Text style={styles.headerAction}>Thoát</Text>
+            </Pressable>
+          </View>
+        </GradientView>
+      ) : (
+        <GradientView style={styles.header}>
+          <Pressable style={styles.identity} onPress={() => router.push('/(user)/profile')}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{(profile?.full_name ?? '?').charAt(0).toUpperCase()}</Text>
+            </View>
+            <View>
+              <Text style={styles.greeting}>Xin chào, {profile?.full_name ?? '...'}</Text>
+              <Text style={styles.points}>Điểm thưởng: {profile?.points ?? 0}</Text>
+            </View>
           </Pressable>
-          <Pressable
-            onPress={async () => {
-              await signOut();
-              router.replace('/');
-            }}
-            hitSlop={8}
-          >
-            <Text style={styles.headerAction}>Đăng xuất</Text>
-          </Pressable>
-        </View>
-      </GradientView>
+
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => router.push('/(user)/stats')} hitSlop={8}>
+              <Text style={styles.headerAction}>Thống kê</Text>
+            </Pressable>
+            <Pressable
+              onPress={async () => {
+                await signOut();
+                router.replace('/');
+              }}
+              hitSlop={8}
+            >
+              <Text style={styles.headerAction}>Đăng xuất</Text>
+            </Pressable>
+          </View>
+        </GradientView>
+      )}
 
       <ScrollView
         style={styles.body}
@@ -132,7 +163,7 @@ export default function Sort() {
           <View style={{ gap: 10 }}>
             <SectionTitle>Chọn thùng rác</SectionTitle>
             {devices.map((d) => {
-              const fillLevel = d.bins?.length ? Math.max(...d.bins.map((b) => b.fill_level)) : 0;
+              const fillLevel = deviceFillLevel(d);
               const isFull = fillLevel >= FILL_ALERT_THRESHOLD;
               return (
                 <Pressable key={d.id} onPress={() => setDeviceId(d.id)}>
@@ -161,17 +192,34 @@ export default function Sort() {
 
         {deviceId && (
           <View style={{ gap: 10 }}>
-            <SectionTitle>Chọn loại rác</SectionTitle>
+            <View style={styles.historyHeaderRow}>
+              <SectionTitle>Chọn loại rác</SectionTitle>
+              <StatusBadge
+                label={
+                  bleStatus === 'connected'
+                    ? 'Đã kết nối thùng'
+                    : bleStatus === 'scanning'
+                      ? 'Đang kết nối...'
+                      : 'Chưa kết nối'
+                }
+                tone={bleStatus === 'connected' ? 'success' : bleStatus === 'error' ? 'danger' : 'warning'}
+              />
+            </View>
+            {bleStatus === 'error' && (
+              <Pressable onPress={connectBin}>
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Thử kết nối lại</Text>
+              </Pressable>
+            )}
             <View style={styles.typeGrid}>
               {WASTE_TYPES.map((type) => (
                 <Pressable
                   key={type}
                   onPress={() => onPickType(type)}
-                  disabled={busy}
-                  style={[styles.typeButtonWrapper, busy && styles.disabled]}
+                  disabled={busy || bleStatus !== 'connected'}
+                  style={[styles.typeButtonWrapper, (busy || bleStatus !== 'connected') && styles.disabled]}
                 >
                   <GradientView style={styles.typeButton}>
-                    <Ionicons name={WASTE_ICONS[type] as never} size={20} color={colors.textOnPrimary} />
+                    <Ionicons name={WASTE_ICONS[type] as IoniconName} size={20} color={colors.textOnPrimary} />
                     <Text style={styles.typeButtonText} numberOfLines={2}>
                       {WASTE_LABELS[type]}
                     </Text>
@@ -183,8 +231,8 @@ export default function Sort() {
         )}
 
         {busy && <Text style={{ color: colors.textMuted }}>Đang mở ngăn rác...</Text>}
+        {bleError && bleStatus === 'error' && <Text style={{ color: colors.danger }}>{bleError}</Text>}
         {error && <Text style={{ color: colors.danger }}>{error}</Text>}
-        {lastResult && <Text style={{ color: colors.success, fontWeight: '600' }}>{lastResult}</Text>}
 
         <View style={{ gap: 10 }}>
           <View style={styles.historyHeaderRow}>

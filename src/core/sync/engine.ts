@@ -7,7 +7,7 @@ import { pending, remove, markFailed } from './queue';
  * remove(id) - Xóa thao tác đã đồng bộ thành công.
  * markFailed(id, error) - Đánh dấu thao tác thất bại, ghi lại lỗi.
  */
-const MAX_ATTEMPTS = 5; 
+export const MAX_ATTEMPTS = 5;
 let running = false;
 
 /**
@@ -58,7 +58,16 @@ export async function flush(): Promise<{ pushed: number; failed: number }> {
         await remove(job.id);
         pushed++;
       } catch (e) {
-        await markFailed(job.id, e instanceof Error ? e.message : String(e));
+        // Lỗi của supabase-js là object thường ({ message, code... }), không
+        // phải Error — lấy message ra, không thì chỉ ghi được "[object Object]".
+        const message =
+          e instanceof Error ? e.message
+          : typeof e === 'object' && e !== null && 'message' in e ? String(e.message)
+          : String(e);
+        // Mất mạng giữa chừng: dừng, giữ nguyên hàng đợi, không tính là một
+        // lần thất bại (nếu không, mạng chập chờn vài lần là thao tác bị bỏ).
+        if (/network request failed|failed to fetch|network error/i.test(message)) break;
+        await markFailed(job.id, message);
         failed++;
       }
     }
@@ -69,9 +78,19 @@ export async function flush(): Promise<{ pushed: number; failed: number }> {
   return { pushed, failed };
 }
 
-/** Tự đẩy hàng đợi mỗi khi mạng được khôi phục. */
+const RETRY_INTERVAL_MS = 15_000;
+
+/**
+ * Tự đẩy hàng đợi mỗi khi mạng được khôi phục, và thử lại định kỳ các thao
+ * tác còn tồn (vd. lần trước server tạm lỗi). Trả về hàm huỷ.
+ */
 export function startAutoSync() {
-  return NetInfo.addEventListener((state) => {
+  const unsubscribe = NetInfo.addEventListener((state) => {
     if (state.isConnected) void flush();
   });
+  const timer = setInterval(() => void flush(), RETRY_INTERVAL_MS);
+  return () => {
+    unsubscribe();
+    clearInterval(timer);
+  };
 }

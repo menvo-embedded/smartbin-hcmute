@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getDb } from '../../core/storage/db';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useAuth } from '../auth/store';
+import { loadSortEvents } from '../sorting/loadSortEvents';
 import { WASTE_TYPES, WASTE_LABELS, type WasteType } from '../../shared/constants/waste';
 
 export interface WasteStats {
@@ -8,57 +10,64 @@ export interface WasteStats {
   last7Days: { label: string; count: number }[];
 }
 
-/** Đọc thống kê từ SQLite cục bộ — hoạt động cả khi offline, không cần gọi Supabase. */
+/** Khoá ngày theo giờ trên máy (không dùng toISOString vì đó là giờ UTC). */
+function dayKey(d: Date) {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/**
+ * Thống kê của người đang đăng nhập: tính trên cùng nguồn với lịch sử
+ * (server + lượt chờ đồng bộ), nên tổng lượt khớp với điểm thưởng. Mất mạng
+ * thì tự lùi về dữ liệu trong máy.
+ */
 export function useWasteStats() {
+  const userId = useAuth((s) => s.session?.user.id ?? null);
   const [stats, setStats] = useState<WasteStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // loading chỉ true ở lần tải đầu; các lần tải lại sau chạy ngầm.
   const load = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
-      const db = await getDb();
+      const rows = await loadSortEvents(userId);
 
-      const totalRow = await db.getFirstAsync<{ n: number }>(`SELECT COUNT(*) AS n FROM sort_events`);
+      const countByType = new Map<WasteType, number>();
+      const countByDay = new Map<string, number>();
+      for (const r of rows) {
+        countByType.set(r.waste_type, (countByType.get(r.waste_type) ?? 0) + 1);
+        const key = dayKey(new Date(r.created_at));
+        countByDay.set(key, (countByDay.get(key) ?? 0) + 1);
+      }
 
-      const typeRows = await db.getAllAsync<{ waste_type: WasteType; n: number }>(
-        `SELECT waste_type, COUNT(*) AS n FROM sort_events GROUP BY waste_type`,
-      );
-      const countByType = new Map(typeRows.map((r) => [r.waste_type, r.n]));
       const byType = WASTE_TYPES.map((type) => ({
         type,
         label: WASTE_LABELS[type],
         count: countByType.get(type) ?? 0,
       }));
 
-      const dayRows = await db.getAllAsync<{ day: string; n: number }>(
-        `SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS n
-         FROM sort_events
-         WHERE created_at >= date('now', '-6 days')
-         GROUP BY day`,
-      );
-      const countByDay = new Map(dayRows.map((r) => [r.day, r.n]));
-
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
-        const iso = d.toISOString().slice(0, 10);
-        const [, month, day] = iso.split('-');
-        return { label: `${day}/${month}`, count: countByDay.get(iso) ?? 0 };
+        const label = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return { label, count: countByDay.get(dayKey(d)) ?? 0 };
       });
 
-      setStats({ total: totalRow?.n ?? 0, byType, last7Days });
+      setStats({ total: rows.length, byType, last7Days });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không đọc được thống kê cục bộ');
+      setError(e instanceof Error ? e.message : 'Không đọc được thống kê');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Tải lại mỗi lần màn được mở (tab giữ trạng thái nên useEffect chỉ chạy
+  // một lần — bỏ rác xong quay lại sẽ thấy số liệu cũ).
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return { stats, loading, error, reload: load };
 }

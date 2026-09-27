@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../core/supabase/client';
 import { useAuth } from '../../features/auth/store';
 import { formatRelativeTime } from '../../core/utils/time';
@@ -11,14 +11,14 @@ import {
   TASK_STATUS_LABEL,
   TASK_STATUS_TONE,
 } from '../../features/collection/taskStatus';
-import type { CollectionTask } from '../../shared/types/database';
+import type { TaskWithDevice } from '../../features/collection/types';
+import { SHIFT_SHORT_LABELS } from '../../features/admin/types';
 import { colors } from '../../theme/colors';
-import { Card, StatCard, StatusBadge, ScreenHeader, SectionTitle, EmptyState, GradientView } from '../../shared/ui';
-
-type TaskWithDevice = CollectionTask & { devices: { name: string; area: string } | null };
+import { Card, StatCard, StatusBadge, ScreenHeader, SectionTitle, EmptyState, GradientView, ProgressBar } from '../../shared/ui';
 
 const FILTERS = [
   { key: 'all', label: 'Tất cả' },
+  { key: 'today', label: '📅 Hôm nay' },
   { key: 'pending', label: 'Chưa nhận' },
   { key: 'in_progress', label: 'Đang xử lý' },
   { key: 'done', label: 'Hoàn tất' },
@@ -28,35 +28,73 @@ type FilterKey = (typeof FILTERS)[number]['key'];
 
 export default function Tasks() {
   const signOut = useAuth((s) => s.signOut);
+  const profileName = useAuth((s) => s.profile?.full_name ?? 'nhân viên');
+  const userId = useAuth((s) => s.session?.user.id);
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const { data: tasks, isLoading, isRefetching, refetch } = useQuery({
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const { data: tasks, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: ['collection_tasks'],
+    // RLS chỉ trả về việc được giao cho mình và việc chưa ai nhận.
     queryFn: async () => {
       const { data, error } = await supabase
         .from('collection_tasks')
-        .select('*, devices(name, area)')
+        .select('*, devices(name, area, code)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as unknown as TaskWithDevice[];
     },
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
   const pendingCount = tasks?.filter((t) => t.status === 'pending').length ?? 0;
   const inProgressCount = tasks?.filter((t) => t.status === 'in_progress').length ?? 0;
   const doneCount = tasks?.filter((t) => t.status === 'done').length ?? 0;
 
+  // Công việc ca trực hôm nay được giao cho chính nhân viên này
+  const myTodayTasks = useMemo(() => {
+    if (!tasks) return [];
+    return tasks.filter((t) => {
+      const d = t.scheduled_date || t.created_at.slice(0, 10);
+      return t.assignee_id === userId && d === todayStr;
+    });
+  }, [tasks, userId, todayStr]);
+
+  const myTodayDoneCount = myTodayTasks.filter((t) => t.status === 'done').length;
+  // Việc đã nhận mà chưa xong (mọi ngày) — dùng để mở lộ trình.
+  const myOpenCount = tasks?.filter((t) => t.assignee_id === userId && t.status === 'in_progress').length ?? 0;
+  const myTodayTotalCount = myTodayTasks.length;
+  const myTodayProgress = myTodayTotalCount > 0 ? myTodayDoneCount / myTodayTotalCount : 0;
+
   const filteredTasks = useMemo(() => {
-    if (!tasks) return tasks;
+    if (!tasks) return [];
     if (filter === 'all') return tasks;
+    if (filter === 'today') {
+      return tasks.filter((t) => {
+        const d = t.scheduled_date || t.created_at.slice(0, 10);
+        return d === todayStr;
+      });
+    }
     return tasks.filter((t) => t.status === filter);
-  }, [tasks, filter]);
+  }, [tasks, filter, todayStr]);
 
   return (
     <View style={styles.screen}>
       <ScreenHeader
         title="Công việc thu gom"
-        subtitle={`${tasks?.length ?? 0} việc trong hệ thống`}
+        subtitle={`Xin chào, ${profileName}`}
         actionLabel="Đăng xuất"
         onAction={async () => {
           await signOut();
@@ -74,6 +112,45 @@ export default function Tasks() {
           }
           ListHeaderComponent={
             <View style={{ marginTop: 16, marginBottom: 16 }}>
+              {/* Banner ca trực hôm nay nếu có */}
+              {myTodayTotalCount > 0 && (
+                <View style={styles.todayBanner}>
+                  <View style={styles.todayBannerHeader}>
+                    <View style={styles.todayBannerIcon}>
+                      <Ionicons name="calendar" size={18} color={colors.primaryDark} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.todayBannerTitle}>
+                        Ca trực hôm nay ({new Date().toLocaleDateString('vi-VN')})
+                      </Text>
+                      <Text style={styles.todayBannerSub}>
+                        Bạn được phân công {myTodayTotalCount} thùng rác cần hoàn tất
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.todayBannerProgressRow}>
+                    <Text style={styles.todayBannerProgressText}>
+                      Tiến độ: {myTodayDoneCount}/{myTodayTotalCount} thùng ({Math.round(myTodayProgress * 100)}%)
+                    </Text>
+                  </View>
+                  <ProgressBar
+                    value={myTodayProgress}
+                    color={myTodayProgress === 1 ? colors.success : colors.primary}
+                    height={7}
+                  />
+                </View>
+              )}
+
+              {myOpenCount > 0 && (
+                <Pressable onPress={() => router.push('/(collector)/route')} style={{ marginBottom: 12 }}>
+                  <GradientView style={styles.routeButton}>
+                    <Ionicons name="map" size={18} color={colors.textOnPrimary} />
+                    <Text style={styles.routeButtonText}>Lộ trình tối ưu cho {myOpenCount} thùng</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textOnPrimary} />
+                  </GradientView>
+                </Pressable>
+              )}
+
               <FlatList
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -114,6 +191,11 @@ export default function Tasks() {
               <View style={{ height: 16 }} />
               <SectionTitle>Danh sách việc</SectionTitle>
               {isLoading && <ActivityIndicator />}
+              {error && (
+                <Text style={{ color: colors.danger }}>
+                  Không tải được danh sách việc: {error instanceof Error ? error.message : String(error)}
+                </Text>
+              )}
             </View>
           }
           ListEmptyComponent={!isLoading ? <EmptyState title="Không có việc nào phù hợp" /> : null}
@@ -138,8 +220,32 @@ export default function Tasks() {
                       tone={TASK_STATUS_TONE[displayStatus]}
                     />
                   </View>
-                  {item.devices?.area && <Text style={styles.taskMeta}>{item.devices.area}</Text>}
-                  <Text style={styles.taskMeta}>{formatRelativeTime(item.created_at)}</Text>
+                  {item.devices?.area && <Text style={styles.taskMeta}>Khu vực: {item.devices.area}</Text>}
+                  
+                  {/* Nhãn ca trực & độ ưu tiên */}
+                  <View style={styles.taskMetaRow}>
+                    <Text style={styles.taskMetaTime}>
+                      {item.scheduled_date ? `📅 ${item.scheduled_date}` : formatRelativeTime(item.created_at)}
+                    </Text>
+                    <View style={styles.taskTagGroup}>
+                      {item.shift && (
+                        <View style={styles.shiftTag}>
+                          <Text style={styles.shiftTagText}>
+                            {SHIFT_SHORT_LABELS[item.shift] || item.shift}
+                          </Text>
+                        </View>
+                      )}
+                      {item.priority === 'urgent' ? (
+                        <View style={styles.urgentTag}>
+                          <Text style={styles.urgentTagText}>⚠️ Đầy đột xuất</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.routineTag}>
+                          <Text style={styles.routineTagText}>📋 Lịch ca</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
                 </Card>
               </Pressable>
             );
@@ -151,6 +257,20 @@ export default function Tasks() {
 }
 
 const styles = StyleSheet.create({
+  routeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+  },
+  routeButtonText: {
+    flex: 1,
+    color: colors.textOnPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -208,5 +328,98 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: colors.textOnPrimary,
+  },
+  todayBanner: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    gap: 8,
+  },
+  todayBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  todayBannerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  todayBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primaryDark,
+  },
+  todayBannerSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
+  todayBannerProgressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  todayBannerProgressText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primaryDark,
+  },
+  taskMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  taskMetaTime: {
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  taskTagGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shiftTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#FEF3C7',
+  },
+  shiftTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  urgentTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: colors.dangerBg,
+  },
+  urgentTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.danger,
+  },
+  routineTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: colors.primaryLight,
+  },
+  routineTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primaryDark,
   },
 });

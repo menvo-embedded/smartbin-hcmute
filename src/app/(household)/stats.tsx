@@ -2,11 +2,14 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator, Share, StyleSheet
 import { Ionicons } from '@expo/vector-icons';
 import { useWasteStats } from '../../features/stats/useWasteStats';
 import { WasteStatsView } from '../../features/stats/WasteStatsView';
+import { useImpact } from '../../features/stats/useImpact';
+import { ImpactCard } from '../../features/stats/ImpactCard';
 import { colors } from '../../theme/colors';
 import { StatCard, GradientView, EmptyState } from '../../shared/ui';
 
 export default function HouseholdStats() {
   const { stats, loading, error } = useWasteStats();
+  const { impact } = useImpact();
 
   async function onExport() {
     if (!stats) return;
@@ -42,6 +45,8 @@ export default function HouseholdStats() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
             <StatCard label="Tổng lượt bỏ rác" value={String(stats.total)} />
           </ScrollView>
+
+          {impact && <ImpactCard impact={impact} />}
 
           <WasteStatsView stats={stats} />
 

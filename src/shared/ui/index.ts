@@ -6,3 +6,4 @@ export { SectionTitle } from './SectionTitle';
 export { EmptyState } from './EmptyState';
 export { ProgressBar } from './ProgressBar';
 export { GradientView } from './GradientView';
+export { SyncStatusBanner } from './SyncStatusBanner';

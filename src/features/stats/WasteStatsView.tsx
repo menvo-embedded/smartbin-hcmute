@@ -4,6 +4,10 @@ import { colors } from '../../theme/colors';
 import { Card, SectionTitle, GradientView } from '../../shared/ui';
 import type { WasteStats } from './useWasteStats';
 
+const CHART_SECTIONS = 3;
+const CHART_EDGE = 18;
+const Y_LABEL_WIDTH = 24;
+
 interface WasteStatsViewProps {
   stats: WasteStats;
 }
@@ -14,8 +18,13 @@ interface WasteStatsViewProps {
  */
 export function WasteStatsView({ stats }: WasteStatsViewProps) {
   const { width } = useWindowDimensions();
-  const chartWidth = width - 20 * 2 - 14 * 2 - 24;
+  const chartWidth = width - 20 * 2 - 14 * 2 - Y_LABEL_WIDTH;
   const maxTypeCount = Math.max(1, ...stats.byType.map((t) => t.count));
+  // Trục Y chia 3 khoảng bằng số nguyên (0, 1, 2, 3 / 0, 2, 4, 6...), không ra 0.4, 0.7.
+  const maxDayCount = Math.max(...stats.last7Days.map((d) => d.count));
+  const chartMax = Math.max(CHART_SECTIONS, Math.ceil(maxDayCount / CHART_SECTIONS) * CHART_SECTIONS);
+  // Dàn đều 7 điểm trong khung, chừa lề hai đầu để nhãn ngày không bị cắt.
+  const spacing = (chartWidth - CHART_EDGE * 2) / (stats.last7Days.length - 1);
 
   return (
     <View style={{ gap: 20 }}>
@@ -43,7 +52,6 @@ export function WasteStatsView({ stats }: WasteStatsViewProps) {
             data={stats.last7Days.map((d) => ({ value: d.count, label: d.label }))}
             width={chartWidth}
             areaChart
-            curved
             color={colors.primary}
             startFillColor={colors.primary}
             endFillColor={colors.background}
@@ -55,10 +63,14 @@ export function WasteStatsView({ stats }: WasteStatsViewProps) {
             xAxisThickness={0}
             xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 10 }}
             yAxisTextStyle={{ color: colors.textMuted, fontSize: 11 }}
-            noOfSections={3}
+            yAxisLabelWidth={Y_LABEL_WIDTH}
+            formatYLabel={(label) => String(Math.round(Number(label)))}
+            maxValue={chartMax}
+            noOfSections={CHART_SECTIONS}
             height={160}
-            initialSpacing={8}
-            endSpacing={8}
+            spacing={spacing}
+            initialSpacing={CHART_EDGE}
+            endSpacing={CHART_EDGE}
           />
         </Card>
       </View>
