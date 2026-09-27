@@ -14,7 +14,11 @@ export async function enqueue(entity: SyncEntity, operation: 'insert' | 'update'
   );
 }
 
-export async function pending(limit = 50) {
+/**
+ * Các thao tác còn chờ gửi. Bỏ qua dòng đã thử quá maxAttempts lần — nếu không,
+ * vài chục dòng hỏng nằm đầu hàng đợi sẽ chiếm hết `limit` và chặn mọi dòng sau.
+ */
+export async function pending(limit = 50, maxAttempts = Number.MAX_SAFE_INTEGER) {
   const db = await getDb();
   return db.getAllAsync<{
     id: number;
@@ -22,7 +26,7 @@ export async function pending(limit = 50) {
     operation: 'insert' | 'update';
     payload: string;
     attempts: number;
-  }>(`SELECT * FROM sync_queue ORDER BY id ASC LIMIT ?`, limit);
+  }>(`SELECT * FROM sync_queue WHERE attempts < ? ORDER BY id ASC LIMIT ?`, maxAttempts, limit);
 }
 
 export async function remove(id: number) {

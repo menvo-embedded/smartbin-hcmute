@@ -34,9 +34,17 @@ CLASS_OBJECTS = {
         "cigarette butts", "candy wrappers", "old clothes", "a pile of used clothing",
         "old shoes", "a worn-out sneaker", "broken ceramics", "mixed landfill rubbish",
     ],
+    # Nhóm "không có rác": khung hình camera khi chưa ai đưa rác vào. Chỉ chế
+    # độ nhận diện trực tiếp dùng nhóm này để KHÔNG tự mở nắp khi camera chỉ
+    # thấy người, tay không, mặt bàn...
+    "none": [
+        "a person's face", "a person standing", "an empty hand", "an empty table",
+        "an empty floor", "a blank wall", "a room interior", "a ceiling",
+        "a blurry dark image", "a phone screen",
+    ],
 }
 
-CLASS_ORDER = ["huu_co", "vo_co", "tai_che"]  # trùng WASTE_TYPES trong app
+CLASS_ORDER = ["huu_co", "vo_co", "tai_che", "none"]  # 3 nhóm đầu trùng WASTE_TYPES trong app
 
 
 def all_prompts():

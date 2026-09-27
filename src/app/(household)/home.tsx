@@ -10,6 +10,7 @@ import { WasteTypeGrid } from '../../features/sorting/WasteTypeGrid';
 import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
 import { CollectionFeedback } from '../../features/household/CollectionFeedback';
 import { AiScanCard } from '../../features/household/AiScanCard';
+import { LiveScanPanel } from '../../features/sorting/LiveScanPanel';
 import { useImpact } from '../../features/stats/useImpact';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
@@ -122,6 +123,8 @@ export default function HouseholdHome() {
             </Card>
           </View>
         )}
+
+        {device && <LiveScanPanel onDetect={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
 
         {device && <AiScanCard onConfirm={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
 

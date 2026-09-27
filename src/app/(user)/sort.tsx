@@ -11,6 +11,7 @@ import { useSortStats } from '../../features/sorting/useSortStats';
 import { useBinConnection } from '../../features/sorting/useBinConnection';
 import { useKioskConfig } from '../../features/devices/kioskConfigStore';
 import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
+import { LiveScanPanel } from '../../features/sorting/LiveScanPanel';
 import { WASTE_TYPES, WASTE_LABELS, WASTE_ICONS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
 import { colors } from '../../theme/colors';
@@ -69,9 +70,9 @@ export default function Sort() {
     };
   }, [deviceId, connectBin, disconnectBin]);
 
-  async function onPickType(type: WasteType) {
+  async function onPickType(type: WasteType, source: 'manual' | 'ai' = 'manual', confidence?: number) {
     if (!deviceId) return;
-    const ok = await sort(type, 'manual');
+    const ok = await sort(type, source, confidence);
     await loadHistory();
     if (ok) {
       // Bỏ rác thành công → sang màn cảm ơn, tự quay lại đúng màn này
@@ -192,6 +193,15 @@ export default function Sort() {
         )}
 
         {deviceId && (
+          // Kiosk gắn cố định trên thùng: bật sẵn camera nhận diện.
+          <LiveScanPanel
+            defaultOn={isKiosk}
+            onDetect={(type, conf) => onPickType(type, 'ai', conf)}
+            disabled={busy || bleStatus !== 'connected'}
+          />
+        )}
+
+        {deviceId && (
           <View style={{ gap: 10 }}>
             <View style={styles.historyHeaderRow}>
               <SectionTitle>Chọn loại rác</SectionTitle>
@@ -228,7 +238,7 @@ export default function Sort() {
                 </Pressable>
               ))}
             </View>
-            <WasteGuideSearch onPick={onPickType} disabled={busy || bleStatus !== 'connected'} />
+            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy || bleStatus !== 'connected'} />
           </View>
         )}
 

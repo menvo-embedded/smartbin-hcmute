@@ -72,7 +72,7 @@ export default function SignIn() {
     <View style={styles.screen}>
       <GradientView style={styles.brand}>
         <Pressable onPress={() => router.replace('/')} hitSlop={8} style={styles.back}>
-          <Text style={styles.backText}>← Chọn chế độ</Text>
+          <Text style={styles.backText}>‹ Chọn chế độ</Text>
         </Pressable>
         <Text style={styles.brandText}>SmartBin</Text>
         <Text style={styles.brandSubtext}>Phân loại và thu gom rác thông minh</Text>

@@ -120,7 +120,7 @@ export default function TaskDetail() {
           Không tải được công việc: {error instanceof Error ? error.message : String(error)}
         </Text>
         <Pressable onPress={() => router.back()}>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>← Quay lại</Text>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>‹ Quay lại</Text>
         </Pressable>
       </View>
     );
@@ -141,7 +141,7 @@ export default function TaskDetail() {
     <View style={styles.screen}>
       <GradientView style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Danh sách việc</Text>
+          <Text style={styles.backText}>‹ Danh sách việc</Text>
         </Pressable>
         <Text style={styles.title}>Chi tiết công việc</Text>
       </GradientView>

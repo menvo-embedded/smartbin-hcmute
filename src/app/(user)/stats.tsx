@@ -31,7 +31,7 @@ export default function Stats() {
     <View style={styles.screen}>
       <GradientView style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Quay lại</Text>
+          <Text style={styles.backText}>‹ Quay lại</Text>
         </Pressable>
         <Text style={styles.title}>Thống kê phân loại rác</Text>
       </GradientView>

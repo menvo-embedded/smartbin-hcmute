@@ -26,7 +26,7 @@ export async function flush(): Promise<{ pushed: number; failed: number }> {
     const net = await NetInfo.fetch();
     if (!net.isConnected) return { pushed, failed };
 
-    const jobs = await pending();
+    const jobs = await pending(50, MAX_ATTEMPTS);
     const db = await getDb();
 
     for (const job of jobs) {

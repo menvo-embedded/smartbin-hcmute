@@ -92,7 +92,7 @@ export default function CollectorRoute() {
     <View style={styles.screen}>
       <GradientView style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>← Danh sách việc</Text>
+          <Text style={styles.backText}>‹ Danh sách việc</Text>
         </Pressable>
         <Text style={styles.title}>Lộ trình thu gom tối ưu</Text>
       </GradientView>
