@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Camera, useCameraDevice, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevice,
+  useCameraDevices,
+  useCameraFormat,
+  useCameraPermission,
+} from 'react-native-vision-camera';
 import { useIsFocused } from '@react-navigation/native';
 import { useLiveWasteDetector } from '../hooks/useLiveWasteDetector';
 import { NONE } from '../zeroShot';
@@ -25,9 +31,11 @@ export function LiveWasteCamera({ onDetect, paused = false, height = 300 }: Prop
   const back = useCameraDevice('back');
   const all = useCameraDevices();
   const device = back ?? all[0];
+  // Model chỉ cần ảnh 256×256: quay 640×480 cho nhẹ, hình xem trước mượt hơn.
+  const format = useCameraFormat(device, [{ videoResolution: { width: 640, height: 480 } }, { fps: 30 }]);
   const isFocused = useIsFocused();
 
-  const { frameProcessor, status, modelState, stableFrames } = useLiveWasteDetector(
+  const { frameProcessor, status, modelState, stableFrames, delegate } = useLiveWasteDetector(
     (label, confidence) => onDetect(label as WasteType, confidence),
     paused,
   );
@@ -72,6 +80,7 @@ export function LiveWasteCamera({ onDetect, paused = false, height = 300 }: Prop
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
+        format={format}
         isActive={isFocused}
         frameProcessor={frameProcessor}
         pixelFormat="yuv"
@@ -93,7 +102,8 @@ export function LiveWasteCamera({ onDetect, paused = false, height = 300 }: Prop
         {last && (
           <Text style={styles.debug}>
             {last.liveLabel === NONE ? 'Không có rác' : WASTE_LABELS[last.liveLabel as WasteType]}{' '}
-            {Math.round(last.liveConfidence * 100)}% · {Math.round(status.latencyMs)} ms/khung
+            {Math.round(last.liveConfidence * 100)}% · {Math.round(status.latencyMs)} ms/khung ·{' '}
+            {delegate.toUpperCase()}
           </Text>
         )}
       </View>

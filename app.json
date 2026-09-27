@@ -23,6 +23,12 @@
             "kotlinVersion": "1.9.25"
           }
         }
+      ],
+      [
+        "react-native-fast-tflite",
+        {
+          "enableAndroidGpuLibraries": true
+        }
       ]
     ]
   }
