@@ -146,7 +146,11 @@ features on top: admin realtime (`core/supabase/useTableChanges.ts` generic hook
 (`features/stats/impact.ts`).
 
 Migrations already applied to the live DB live in `supabase/migrations_manual/`
-(each is reflected in `schema.sql`). Before a demo run `supabase/reset_demo.sql` (idempotent: deletes open
+(each is reflected in `schema.sql`). AI scan (household home): MobileCLIP-S0 zero-shot, TFLite FP32 default in
+`src/ml/` (only place importing fast-tflite); research scripts, results and
+IEEE references in `ml-research/README.md`. FP16 export gives NaN on Android.
+
+Before a demo run `supabase/reset_demo.sql` (idempotent: deletes open
 tasks, sets demo fill levels; keeps accounts/points/history). Waste lookup
 ("bỏ ngăn nào?") is offline in `features/sorting/wasteGuide.ts`. Demo data: `supabase/seed_demo.sql` —
 re-running adds another batch (and more points).

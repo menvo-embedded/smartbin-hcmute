@@ -1,0 +1,11 @@
+model=tflite:tflite_out/vision_static_float16.tflite split=test n=2749
+accuracy          = 0.9192
+balanced accuracy = 0.9371
+  recall huu_co   = 0.9816
+  recall vo_co    = 0.9509
+  recall tai_che  = 0.8786
+confusion (hàng = thật, cột = dự đoán): ['huu_co', 'vo_co', 'tai_che']
+[[ 320    4    2]
+ [  17 1027   36]
+ [  43  120 1180]]
+latency CPU trung bình = 78.1 ms/ảnh

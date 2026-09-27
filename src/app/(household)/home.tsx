@@ -9,6 +9,7 @@ import { useSortHistory } from '../../features/sorting/useSortHistory';
 import { WasteTypeGrid } from '../../features/sorting/WasteTypeGrid';
 import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
 import { CollectionFeedback } from '../../features/household/CollectionFeedback';
+import { AiScanCard } from '../../features/household/AiScanCard';
 import { useImpact } from '../../features/stats/useImpact';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
@@ -43,10 +44,10 @@ export default function HouseholdHome() {
   const history = allHistory.slice(0, 5);
   const { impact, reload: reloadImpact } = useImpact();
 
-  async function onPickType(type: WasteType) {
+  async function onPickType(type: WasteType, source: 'manual' | 'ai' = 'manual', confidence?: number) {
     if (!device) return;
     setLastResult(null);
-    const ok = await sort(type, 'manual');
+    const ok = await sort(type, source, confidence);
     setLastResult(ok ? `Đã ghi nhận: ${WASTE_LABELS[type]}` : null);
     await Promise.all([loadHistory(), reloadImpact()]);
   }
@@ -122,11 +123,13 @@ export default function HouseholdHome() {
           </View>
         )}
 
+        {device && <AiScanCard onConfirm={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
+
         {device && (
           <View style={{ gap: 10 }}>
             <SectionTitle>Chọn loại rác</SectionTitle>
-            <WasteTypeGrid onPick={onPickType} disabled={busy} />
-            <WasteGuideSearch onPick={onPickType} disabled={busy} />
+            <WasteTypeGrid onPick={(t) => onPickType(t)} disabled={busy} />
+            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy} />
           </View>
         )}
 
