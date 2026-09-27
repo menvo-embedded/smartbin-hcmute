@@ -7,6 +7,7 @@ import { useAuth } from '../../features/auth/store';
 import { useSortAction } from '../../features/sorting/useSortAction';
 import { useSortHistory } from '../../features/sorting/useSortHistory';
 import { WasteTypeGrid } from '../../features/sorting/WasteTypeGrid';
+import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
 import { CollectionFeedback } from '../../features/household/CollectionFeedback';
 import { useImpact } from '../../features/stats/useImpact';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
@@ -125,6 +126,7 @@ export default function HouseholdHome() {
           <View style={{ gap: 10 }}>
             <SectionTitle>Chọn loại rác</SectionTitle>
             <WasteTypeGrid onPick={onPickType} disabled={busy} />
+            <WasteGuideSearch onPick={onPickType} disabled={busy} />
           </View>
         )}
 
@@ -139,14 +141,14 @@ export default function HouseholdHome() {
           <Pressable onPress={() => router.push('/(household)/profile')}>
             <StatCard
               label="🔥 Chuỗi ngày"
-              value={`${impact?.streakDays ?? 0} ngày`}
+              value={impact ? `${impact.streakDays} ngày` : '—'}
               hint="phân loại liên tiếp"
             />
           </Pressable>
           <Pressable onPress={() => router.push('/(household)/profile')}>
             <StatCard
               label="🌱 CO₂ giảm được"
-              value={`${(impact?.co2SavedKg ?? 0).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kg`}
+              value={impact ? `${impact.co2SavedKg.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} kg` : '—'}
               hint="ước tính"
             />
           </Pressable>

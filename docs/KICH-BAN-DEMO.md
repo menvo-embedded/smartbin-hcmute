@@ -16,7 +16,8 @@ Tài khoản test — mật khẩu đều là `123456`, có nút "Đăng nhập 
 | Nhân viên thu gom | user4@test.com | Lê Văn Cường |
 | Quản trị | user3@test.com | Quản trị viên |
 
-Chuẩn bị: điện thoại có mạng, `EXPO_PUBLIC_MOCK_BLE=1` (không cần ESP32). Mở sẵn
+Chuẩn bị: chạy `supabase db query --linked -f supabase/reset_demo.sql` để đưa thùng
+về mức đầy demo (thùng B 85% có sẵn 1 việc đột xuất), điện thoại có mạng, `EXPO_PUBLIC_MOCK_BLE=1` (không cần ESP32). Mở sẵn
 Supabase Dashboard › Table Editor để chứng minh dữ liệu là thật.
 
 ## 1. Cộng đồng — kiosk công khai (2 phút)
@@ -32,9 +33,11 @@ Supabase Dashboard › Table Editor để chứng minh dữ liệu là thật.
    thùng đầy thêm 2% (trigger `fill_bin_on_sort`).
 3. **Demo offline (điểm nhấn kiến trúc):** tắt Wi-Fi → bỏ rác → thanh "Đang offline —
    1 thao tác chờ đồng bộ", lịch sử ghi "Đang chờ" → bật Wi-Fi → tự đồng bộ, điểm tăng.
-4. Tab **Cá nhân**: tác động môi trường (kg rác, CO₂, quy ra cây xanh) + 6 huy hiệu;
+4. Ô **"Rác này bỏ ngăn nào?"**: gõ "vo chuoi" (không dấu) → Hữu cơ, bấm **Bỏ ngay**;
+   gõ "pin" → cảnh báo rác nguy hại, không bỏ vào thùng.
+5. Tab **Cá nhân**: tác động môi trường (kg rác, CO₂, quy ra cây xanh) + 6 huy hiệu;
    trang chủ có 🔥 chuỗi ngày liên tiếp.
-5. Tab **Lịch sử** (lọc theo loại), **Thống kê** (tỷ lệ + biểu đồ 7 ngày, xuất báo cáo).
+6. Tab **Lịch sử** (lọc theo loại), **Thống kê** (tỷ lệ + biểu đồ 7 ngày, xuất báo cáo).
 
 ## 3. Admin phát hiện thùng đầy (2 phút)
 1. Chọn chế độ › **Cộng đồng** › đăng nhập **Quản lý** → bản đồ + danh sách thùng, % đầy từng ngăn,

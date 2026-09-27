@@ -10,6 +10,7 @@ import { useSortAction } from '../../features/sorting/useSortAction';
 import { useSortStats } from '../../features/sorting/useSortStats';
 import { useBinConnection } from '../../features/sorting/useBinConnection';
 import { useKioskConfig } from '../../features/devices/kioskConfigStore';
+import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
 import { WASTE_TYPES, WASTE_LABELS, WASTE_ICONS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
 import { colors } from '../../theme/colors';
@@ -227,6 +228,7 @@ export default function Sort() {
                 </Pressable>
               ))}
             </View>
+            <WasteGuideSearch onPick={onPickType} disabled={busy || bleStatus !== 'connected'} />
           </View>
         )}
 
