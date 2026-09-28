@@ -28,7 +28,6 @@ const FILTERS = [
 type FilterKey = (typeof FILTERS)[number]['key'];
 
 export default function Tasks() {
-  const signOut = useAuth((s) => s.signOut);
   const profileName = useAuth((s) => s.profile?.full_name ?? 'nhân viên');
   const userId = useAuth((s) => s.session?.user.id);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -96,11 +95,6 @@ export default function Tasks() {
       <ScreenHeader
         title="Công việc thu gom"
         subtitle={`Xin chào, ${profileName}`}
-        actionLabel="Đăng xuất"
-        onAction={async () => {
-          await signOut();
-          router.replace('/');
-        }}
         right={<NotificationBell />}
       />
 
@@ -144,7 +138,7 @@ export default function Tasks() {
               )}
 
               {myOpenCount > 0 && (
-                <Pressable onPress={() => router.push('/(collector)/route')} style={{ marginBottom: 12 }}>
+                <Pressable onPress={() => router.navigate('/(collector)/route')} style={{ marginBottom: 12 }}>
                   <GradientView style={styles.routeButton}>
                     <Ionicons name="map" size={18} color={colors.textOnPrimary} />
                     <Text style={styles.routeButtonText}>Lộ trình tối ưu cho {myOpenCount} thùng</Text>

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { colors } from '../../theme/colors';
 import { Card, GradientView } from '../../shared/ui';
 
@@ -14,6 +14,13 @@ export default function ThanksScreen() {
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const target = returnTo || DEFAULT_RETURN_PATH;
   const [countdown, setCountdown] = useState(AUTO_RETURN_SECONDS);
+  // Màn này là một tab ẩn nên được giữ lại sau lần đầu: mỗi lần hiện lại
+  // phải đếm lại từ đầu, nếu không bộ đếm kẹt ở 0 và không tự quay về.
+  useFocusEffect(
+    useCallback(() => {
+      setCountdown(AUTO_RETURN_SECONDS);
+    }, []),
+  );
 
   useEffect(() => {
     // Điều hướng phải nằm trong effect riêng, không đặt bên trong updater

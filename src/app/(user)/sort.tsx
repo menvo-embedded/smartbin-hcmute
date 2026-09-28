@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentProps } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +64,15 @@ export default function Sort() {
   // Mức đầy các thùng tự cập nhật (realtime) khi có người bỏ rác / vừa thu gom.
   useTableChanges('kiosk-bins', ['bins'], () => void refetch());
 
+  // Cuộn ô tra cứu lên đầu màn hình khi gõ, để bàn phím không che kết quả.
+  const scrollRef = useRef<ScrollView>(null);
+  const pickSection = useRef({ y: 0, height: 0 });
+  const scrollToSearch = () =>
+    setTimeout(() => {
+      const { y, height } = pickSection.current;
+      scrollRef.current?.scrollTo({ y: Math.max(0, y + height - 90), animated: true });
+    }, 250);
+
   async function onPickType(type: WasteType, source: 'manual' | 'ai' = 'manual', confidence?: number) {
     if (!deviceId) return;
     const ok = await sort(type, source, confidence);
@@ -127,6 +136,8 @@ export default function Sort() {
       )}
 
       <ScrollView
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
         style={styles.body}
         contentContainerStyle={{ gap: 20, paddingBottom: 24 }}
         refreshControl={
@@ -141,7 +152,7 @@ export default function Sort() {
       >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
           <Pressable onPress={() => router.push('/(user)/stats')}>
-            <StatCard label="Tổng số lần bỏ rác" value={String(stats.total)} />
+            <StatCard label="Lượt bỏ tại máy này" value={String(stats.total)} />
           </Pressable>
           <StatCard label="Đang chờ đồng bộ" value={String(stats.pending)} hint="sẽ tự đẩy lên khi có mạng" />
         </ScrollView>
@@ -196,7 +207,7 @@ export default function Sort() {
         )}
 
         {deviceId && (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 10 }} onLayout={(e) => (pickSection.current = e.nativeEvent.layout)}>
             <View style={styles.historyHeaderRow}>
               <SectionTitle>Chọn loại rác</SectionTitle>
               <StatusBadge
@@ -232,7 +243,7 @@ export default function Sort() {
                 </Pressable>
               ))}
             </View>
-            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy || bleStatus !== 'connected'} />
+            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy || bleStatus !== 'connected'} onFocus={scrollToSearch} />
           </View>
         )}
 

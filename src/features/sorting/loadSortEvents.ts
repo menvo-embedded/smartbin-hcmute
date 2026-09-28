@@ -72,9 +72,15 @@ export async function loadSortEvents(userId: string | null): Promise<SortEventRo
     lastServerRows.set(cacheKey, merged);
     merged = [...merged];
   }
+  // Có dữ liệu server thì server là nguồn đúng cho các lượt đã đồng bộ (lượt
+  // đã bị xoá trên server không được hiện lại) — chỉ thêm lượt đang chờ đồng bộ.
+  // Chưa từng tải được từ server (mở app lần đầu khi offline) thì dùng hết dữ liệu trong máy.
+  const haveServerData = !(error || !data) || lastServerRows.has(cacheKey);
   const onServer = new Set(merged.map((r) => r.local_id));
   for (const row of localRows) {
-    if (!onServer.has(row.local_id)) merged.push(row);
+    if (onServer.has(row.local_id)) continue;
+    if (haveServerData && row.synced) continue;
+    merged.push(row);
   }
   return merged.sort(byNewest);
 }

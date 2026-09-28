@@ -86,10 +86,17 @@ export function AssignCollectorModal({
                       <Text style={[styles.collectorName, isSelected && styles.collectorNameSelected]}>
                         {formatStaffName(item.full_name)}
                       </Text>
-                      <View style={styles.readyBadge}>
-                        <View style={styles.readyDot} />
-                        <Text style={styles.readyText}>Sẵn sàng</Text>
-                      </View>
+                      {item.on_duty === false ? (
+                        <View style={[styles.readyBadge, styles.offBadge]}>
+                          <View style={[styles.readyDot, styles.offDot]} />
+                          <Text style={[styles.readyText, styles.offText]}>Nghỉ ca</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.readyBadge}>
+                          <View style={styles.readyDot} />
+                          <Text style={styles.readyText}>Đang trực</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.collectorArea}>Nhân viên thu gom</Text>
                   </View>
@@ -235,6 +242,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.success,
   },
+  offBadge: { backgroundColor: colors.neutralBg },
+  offDot: { backgroundColor: colors.neutral },
+  offText: { color: colors.neutral },
   readyText: {
     fontSize: 10,
     fontWeight: '700',

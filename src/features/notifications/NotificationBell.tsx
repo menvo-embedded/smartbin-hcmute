@@ -38,7 +38,7 @@ export function NotificationRow({ item }: { item: AppNotification }) {
       <View style={[styles.itemIcon, { backgroundColor: k.color + '1A' }]}>
         <Ionicons name={k.icon} size={18} color={k.color} />
       </View>
-      <View style={{ flex: 1 }}>
+      <View style={styles.itemText}>
         <Text style={styles.itemTitle}>{item.title}</Text>
         {!!item.body && <Text style={styles.itemBody}>{item.body}</Text>}
         <Text style={styles.itemTime}>{formatRelativeTime(item.created_at)}</Text>
@@ -79,6 +79,7 @@ export function NotificationBell() {
             </Pressable>
           </View>
           <FlatList
+            style={styles.list}
             data={items}
             keyExtractor={(n) => n.id}
             contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
@@ -112,6 +113,7 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.textOnPrimary, fontSize: 10, fontWeight: '800' },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: {
+    width: '100%',
     maxHeight: '75%',
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
@@ -122,6 +124,7 @@ const styles = StyleSheet.create({
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sheetTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   item: {
+    width: '100%',
     flexDirection: 'row',
     gap: 12,
     padding: 12,
@@ -131,6 +134,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   itemIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  list: { width: '100%' },
+  itemText: { flex: 1, flexShrink: 1 },
   itemTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
   itemBody: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   itemTime: { fontSize: 11, color: colors.textMuted, marginTop: 4 },

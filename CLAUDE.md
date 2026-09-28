@@ -161,6 +161,20 @@ stops. Tasks carry `origin` / `auto_assigned`. App side: `NotificationWatcher`
 `NotificationBell` in headers; admin tab **Tự động** (`AutomationPanel`);
 `useAutoBinConnection` = auto BLE connect + retry every 10 s + heartbeat.
 
+Navigation: household, collector and admin each use a bottom `Tabs` layout.
+Admin = `devices` (Thùng rác) / `dispatch` (Điều phối, `?assign=<taskId>` opens
+the assign modal) / `automation` / `profile`; admin realtime is mounted once in
+`(admin)/_layout.tsx` (`useAdminRealtime`, last update in a zustand store).
+Collector = `tasks` / `route` / `profile` (+ hidden `task-detail`). Tab screens
+stay mounted: reset per-item state on param change / `useFocusEffect` (see
+`task-detail`, `(user)/thanks`). Maps are Leaflet in a WebView with Esri tiles
+(tile.openstreetmap.org blocks WebView requests — no Referer).
+
+Tests: `supabase/tests/test_logic_server.sql` (44 server checks incl. RLS per
+role, run in a rolled-back transaction) and `npx -y tsx scripts/test-logic.ts`
+(pure app logic). Live detector re-arms only after CLEAR_FRAMES empty frames, so
+an object left in front of the camera is counted once.
+
 Migrations already applied to the live DB live in `supabase/migrations_manual/`
 (each is reflected in `schema.sql`). AI scan (household home): MobileCLIP-S0 zero-shot, TFLite FP32 default in
 `src/ml/` (only place importing fast-tflite); research scripts, results and

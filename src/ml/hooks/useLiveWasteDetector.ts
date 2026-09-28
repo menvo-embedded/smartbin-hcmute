@@ -19,10 +19,19 @@ export const LIVE_THRESHOLD = 0.8;
 const STABLE_FRAMES = 2;
 /** Nghỉ sau khi mở nắp, tránh mở lặp khi rác còn trước camera. */
 const COOLDOWN_MS = 5_000;
+/**
+ * Số khung liên tiếp KHÔNG thấy rác thì mới nhận lượt tiếp theo. Nhờ vậy một
+ * vật nằm yên trước camera chỉ được tính một lần, và vừa bật camera mà đang
+ * chĩa sẵn vào vật gì đó thì cũng không tự mở nắp.
+ */
+const CLEAR_FRAMES = 2;
 
 export interface LiveStatus {
-  /** 'waiting' = chưa thấy rác, 'detecting' = đang xác nhận, 'cooldown' = vừa mở nắp. */
-  phase: 'waiting' | 'detecting' | 'cooldown';
+  /**
+   * 'waiting' = chưa thấy rác, 'detecting' = đang xác nhận, 'cooldown' = vừa mở
+   * nắp, 'clear' = chờ vật rời khỏi khung rồi mới nhận lượt mới.
+   */
+  phase: 'waiting' | 'detecting' | 'cooldown' | 'clear';
   /** Kết quả của khung gần nhất. */
   last: ZeroShotResult | null;
   /** Số khung liên tiếp đã khớp (0..STABLE_FRAMES). */
@@ -81,6 +90,9 @@ export function useLiveWasteDetector(onDetect: (label: string, confidence: numbe
     sum: 0,
   });
   const cooldownUntil = useRef(0);
+  // Chưa "sẵn sàng" cho tới khi khung hình trống rác CLEAR_FRAMES lần liên tiếp.
+  const armed = useRef(false);
+  const clearCount = useRef(0);
   const onDetectRef = useRef(onDetect);
   onDetectRef.current = onDetect;
   const pausedRef = useRef(paused);
@@ -111,6 +123,21 @@ export function useLiveWasteDetector(onDetect: (label: string, confidence: numbe
       }
 
       const isWaste = result.liveLabel !== NONE && result.liveConfidence >= LIVE_THRESHOLD;
+
+      if (!armed.current) {
+        clearCount.current = isWaste ? 0 : clearCount.current + 1;
+        if (clearCount.current >= CLEAR_FRAMES) armed.current = true;
+        streak.current = { label: null, count: 0, sum: 0 };
+        setStatus({
+          phase: armed.current ? 'waiting' : 'clear',
+          last: result,
+          streak: 0,
+          latencyMs,
+          delegate: dlg,
+        });
+        return;
+      }
+
       if (!isWaste) {
         streak.current = { label: null, count: 0, sum: 0 };
       } else if (streak.current.label === result.liveLabel) {
@@ -128,6 +155,8 @@ export function useLiveWasteDetector(onDetect: (label: string, confidence: numbe
         const { label, count, sum } = streak.current;
         streak.current = { label: null, count: 0, sum: 0 };
         cooldownUntil.current = now + COOLDOWN_MS;
+        armed.current = false;
+        clearCount.current = 0;
         setStatus({
           phase: 'cooldown',
           last: result,

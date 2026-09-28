@@ -36,19 +36,31 @@ export function DemoControlModal({
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) ?? devices[0];
 
-  const handleSimulate = async () => {
+  // Mô phỏng một ngăn đạt mức `level`. Chọn ngăn đang THẤP hơn mức đó (cao nhất
+  // trong số đó) để mức đầy thực sự "vượt ngưỡng" — trigger chỉ chạy khi vượt.
+  const handleSimulate = async (level: number) => {
     if (!selectedDevice || !selectedDevice.bins || selectedDevice.bins.length === 0) {
       Alert.alert('Thông báo', 'Thùng rác này chưa có ngăn rác nào.');
       return;
     }
+    const below = selectedDevice.bins
+      .filter((b) => b.fill_level < level)
+      .sort((a, b) => b.fill_level - a.fill_level);
+    if (below.length === 0) {
+      Alert.alert('Thông báo', `Mọi ngăn của thùng này đã ≥ ${Math.round(level * 100)}%. Bấm "Dọn sạch" trước.`);
+      return;
+    }
+    const targetBin = below[0];
     setBusy(true);
     try {
-      // Làm đầy ngăn đầu tiên lên 85% để kích hoạt cảnh báo & trigger tạo task
-      const targetBin = selectedDevice.bins[0];
-      await onSimulateFill(targetBin.id, 0.85);
+      await onSimulateFill(targetBin.id, level);
       Alert.alert(
         'Đã kích hoạt kịch bản!',
-        `Đã mô phỏng ngăn "${WASTE_LABELS[targetBin.waste_type]}" của thùng "${selectedDevice.name}" đạt 85% đầy.\nTrigger hệ thống sẽ tự động tạo công việc thu gom.`,
+        `Ngăn "${WASTE_LABELS[targetBin.waste_type]}" của "${selectedDevice.name}" đạt ${Math.round(level * 100)}%.
+` +
+          (level >= 0.8
+            ? 'Hệ thống tự tạo việc khẩn (hoặc nâng việc đang có lên khẩn) và báo nhân viên.'
+            : 'Hệ thống tự lên lịch thu gom ca gần nhất và tự giao nhân viên đang trực.'),
       );
       onClose();
     } catch (err: unknown) {
@@ -128,8 +140,17 @@ export function DemoControlModal({
           <View style={styles.actions}>
             {/* Nút làm đầy thùng */}
             <Pressable
+              style={[styles.actionBtn, styles.soonActionBtn, busy && styles.disabled]}
+              onPress={() => handleSimulate(0.65)}
+              disabled={busy}
+            >
+              <Ionicons name="analytics" size={18} color={colors.warning} />
+              <Text style={styles.soonText}>Mô phỏng sắp đầy (65%)</Text>
+            </Pressable>
+
+            <Pressable
               style={[styles.actionBtn, styles.fillActionBtn, busy && styles.disabled]}
-              onPress={handleSimulate}
+              onPress={() => handleSimulate(0.85)}
               disabled={busy}
             >
               <Ionicons name="alert-circle" size={18} color={colors.danger} />
@@ -259,6 +280,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
+  },
+  soonActionBtn: {
+    backgroundColor: colors.warningBg,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  soonText: {
+    color: colors.warning,
+    fontWeight: '700',
+    fontSize: 14,
   },
   fillActionBtn: {
     backgroundColor: colors.dangerBg,

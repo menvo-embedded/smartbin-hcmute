@@ -10,10 +10,12 @@ interface Props {
   /** Có thì mỗi kết quả kèm nút "Bỏ ngay" vào đúng ngăn. */
   onPick?: (type: WasteType) => void;
   disabled?: boolean;
+  /** Gọi khi bắt đầu gõ — màn hình cuộn ô tra cứu lên để bàn phím không che kết quả. */
+  onFocus?: () => void;
 }
 
 /** Ô tra cứu "rác này bỏ ngăn nào?" — gõ có dấu hay không dấu đều được. */
-export function WasteGuideSearch({ onPick, disabled }: Props) {
+export function WasteGuideSearch({ onPick, disabled, onFocus }: Props) {
   const [query, setQuery] = useState('');
   const results = searchGuide(query);
   const searched = query.trim().length > 0;
@@ -29,6 +31,7 @@ export function WasteGuideSearch({ onPick, disabled }: Props) {
           placeholderTextColor={colors.textMuted}
           style={styles.input}
           autoCorrect={false}
+          onFocus={onFocus}
         />
         {searched && (
           <Pressable onPress={() => setQuery('')} hitSlop={8}>

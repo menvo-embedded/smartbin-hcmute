@@ -61,7 +61,7 @@ export function AllStaffDailyShiftBoard({
           <View style={styles.calendarIconBox}>
             <Ionicons name="calendar" size={18} color={colors.primaryDark} />
           </View>
-          <View>
+          <View style={{ flexShrink: 1 }}>
             <Text style={styles.title}>Bảng ca trực toàn nhân viên</Text>
             <Text style={styles.subtitle}>
               Ngày {formattedDate} • <Text style={styles.highlightText}>{activeStaffCount}/{collectors.length} nhân viên có ca</Text>
@@ -75,7 +75,7 @@ export function AllStaffDailyShiftBoard({
           hitSlop={6}
         >
           <Ionicons name="add-circle" size={16} color={colors.primary} />
-          <Text style={styles.addShiftBtnText}>+ Thêm ca</Text>
+          <Text style={styles.addShiftBtnText}>Thêm ca</Text>
         </Pressable>
       </View>
 
@@ -195,12 +195,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
   titleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

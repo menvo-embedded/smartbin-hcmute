@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, Image, Alert, ScrollView } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +22,12 @@ export default function TaskDetail() {
 
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [quality, setQuality] = useState<SortingQuality | null>(null);
+  // Màn này nằm trong thanh tab nên được giữ lại giữa các lần mở: đổi sang
+  // việc khác thì xoá ảnh / đánh giá của việc trước.
+  useEffect(() => {
+    setProofImage(null);
+    setQuality(null);
+  }, [id]);
 
   const { data: task, isLoading, error, refetch } = useQuery({
     queryKey: ['collection_task', id],
@@ -68,6 +74,7 @@ export default function TaskDetail() {
   function afterChange() {
     qc.invalidateQueries({ queryKey: ['collection_tasks'] });
     qc.invalidateQueries({ queryKey: ['admin_tasks'] });
+    qc.invalidateQueries({ queryKey: ['collector_route_tasks'] });
     return refetch();
   }
 
@@ -141,7 +148,7 @@ export default function TaskDetail() {
     <View style={styles.screen}>
       <GradientView style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>‹ Danh sách việc</Text>
+          <Text style={styles.backText}>‹ Quay lại</Text>
         </Pressable>
         <Text style={styles.title}>Chi tiết công việc</Text>
       </GradientView>

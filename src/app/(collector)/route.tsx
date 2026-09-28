@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Linking, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
@@ -18,7 +18,8 @@ import {
   type RouteStop,
 } from '../../features/collection/route';
 import { colors } from '../../theme/colors';
-import { Card, EmptyState, GradientView } from '../../shared/ui';
+import { Card, EmptyState, GradientView, ScreenHeader } from '../../shared/ui';
+import { NotificationBell } from '../../features/notifications/NotificationBell';
 
 /** Xa hơn khoảng này so với các thùng thì coi như vị trí không dùng được. */
 const MAX_START_DISTANCE_KM = 20;
@@ -38,7 +39,7 @@ async function getCurrentPosition(): Promise<LatLng | null> {
 export default function CollectorRoute() {
   const userId = useAuth((s) => s.session?.user.id ?? null);
 
-  const { data: tasks, isLoading, error } = useQuery({
+  const { data: tasks, isLoading, error, refetch } = useQuery({
     queryKey: ['collector_route_tasks', userId],
     queryFn: async () => {
       if (!userId) return [];
@@ -52,6 +53,13 @@ export default function CollectorRoute() {
     },
     enabled: !!userId,
   });
+
+  // Là một tab (luôn giữ trong bộ nhớ): mỗi lần mở lại thì tải lại việc mới nhất.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
 
   const { data: myPosition, isLoading: locating } = useQuery({
     queryKey: ['collector_position'],
@@ -90,12 +98,7 @@ export default function CollectorRoute() {
 
   return (
     <View style={styles.screen}>
-      <GradientView style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Text style={styles.backText}>‹ Danh sách việc</Text>
-        </Pressable>
-        <Text style={styles.title}>Lộ trình thu gom tối ưu</Text>
-      </GradientView>
+      <ScreenHeader title="Lộ trình tối ưu" subtitle="Thứ tự ghé các thùng đang phụ trách" right={<NotificationBell />} />
 
       {(isLoading || (locating && !plan)) && <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />}
 
@@ -117,7 +120,7 @@ export default function CollectorRoute() {
       {plan && mapHtml && (
         <ScrollView contentContainerStyle={styles.body}>
           <View style={styles.mapBox}>
-            <WebView source={{ html: mapHtml }} originWhitelist={['*']} style={{ flex: 1 }} />
+            <WebView source={{ html: mapHtml, baseUrl: 'https://smartbin.local/' }} originWhitelist={['*']} style={{ flex: 1 }} />
           </View>
 
           <Card style={styles.summary}>
@@ -165,24 +168,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    paddingTop: 56,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    gap: 8,
-  },
-  backText: {
-    color: colors.textOnPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  title: {
-    color: colors.textOnPrimary,
-    fontSize: 22,
-    fontWeight: '700',
   },
   error: {
     color: colors.danger,

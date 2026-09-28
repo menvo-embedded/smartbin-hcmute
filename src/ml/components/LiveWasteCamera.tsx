@@ -71,6 +71,7 @@ export function LiveWasteCamera({ onDetect, paused = false, height = 300 }: Prop
   else if (modelState === 'error') caption = 'Không nạp được mô hình AI';
   else if (paused) caption = 'Tạm dừng';
   else if (status.phase === 'cooldown') caption = 'Đã mở nắp — mời bỏ rác';
+  else if (status.phase === 'clear') caption = 'Rút vật ra khỏi khung để bỏ lượt mới';
   else if (status.phase === 'detecting' && seesWaste) {
     caption = `Có vẻ là ${WASTE_LABELS[last.liveLabel as WasteType]}... giữ yên`;
   }

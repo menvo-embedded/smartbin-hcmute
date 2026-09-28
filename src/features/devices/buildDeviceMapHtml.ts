@@ -33,9 +33,11 @@ export function buildDeviceMapHtml(markers: DeviceMapMarker[], center: { lat: nu
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       var map = L.map('map', { zoomControl: false }).setView([${center.lat}, ${center.lng}], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        // Tile Esri: không cần khoá API, không đòi Referer. tile.openstreetmap.org
+        // chặn request từ WebView (không có Referer) nên bản đồ bị trống.
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, OpenStreetMap contributors',
       }).addTo(map);
 
       function pinIcon(color) {

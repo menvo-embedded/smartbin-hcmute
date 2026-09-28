@@ -115,8 +115,11 @@ export function buildRouteMapHtml(start: LatLng, order: RouteStop[]) {
     <script>
       var d = ${data};
       var map = L.map('map', { zoomControl: false });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        // Tile Esri: không cần khoá API, không đòi Referer. tile.openstreetmap.org
+        // chặn request từ WebView (không có Referer) nên bản đồ bị trống.
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, OpenStreetMap contributors',
       }).addTo(map);
       var points = [[d.start.lat, d.start.lng]];
       L.marker([d.start.lat, d.start.lng], {

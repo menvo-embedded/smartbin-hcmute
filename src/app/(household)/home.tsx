@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -50,6 +50,14 @@ export default function HouseholdHome() {
   // Mức đầy thùng tự cập nhật khi vừa bỏ rác hoặc nhân viên vừa thu gom.
   useTableChanges('household-bins', ['bins'], () => void refetch());
   const [lastResult, setLastResult] = useState<string | null>(null);
+  // Cuộn ô tra cứu lên đầu màn hình khi gõ, để bàn phím không che kết quả.
+  const scrollRef = useRef<ScrollView>(null);
+  const pickSection = useRef({ y: 0, height: 0 });
+  const scrollToSearch = () =>
+    setTimeout(() => {
+      const { y, height } = pickSection.current;
+      scrollRef.current?.scrollTo({ y: Math.max(0, y + height - 90), animated: true });
+    }, 250);
   const { rows: allHistory, error: dbError, reload: loadHistory } = useSortHistory(null);
   const history = allHistory.slice(0, 5);
   const { impact, reload: reloadImpact } = useImpact();
@@ -93,6 +101,8 @@ export default function HouseholdHome() {
       </GradientView>
 
       <ScrollView
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
         style={styles.body}
         contentContainerStyle={{ gap: 20, paddingBottom: 24 }}
         refreshControl={
@@ -157,10 +167,10 @@ export default function HouseholdHome() {
         {device && <AiScanCard onConfirm={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
 
         {device && (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 10 }} onLayout={(e) => (pickSection.current = e.nativeEvent.layout)}>
             <SectionTitle>Chọn loại rác</SectionTitle>
             <WasteTypeGrid onPick={(t) => onPickType(t)} disabled={busy} />
-            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy} />
+            <WasteGuideSearch onPick={(t) => onPickType(t)} disabled={busy} onFocus={scrollToSearch} />
           </View>
         )}
 
