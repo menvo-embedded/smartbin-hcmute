@@ -273,6 +273,11 @@ def slide():
 # ---------------------------------------------------------------- 3. Chương 1
 def chuong1():
     d = base_doc()
+    viet_chuong1(d)
+    d.save(os.path.join(OUT, 'BaoCao_Chuong1_TongQuan.docx'))
+
+
+def viet_chuong1(d):
     h = d.add_heading('CHƯƠNG 1: TỔNG QUAN', level=1)
     h.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
@@ -351,7 +356,6 @@ def chuong1():
         ('Chương 4 – Phân tích kết quả: ', 'kết quả hiện thực, kiểm thử, đánh giá AI.'),
         ('Chương 5 – Kết luận: ', 'kết quả đạt được, hạn chế, hướng phát triển.'),
     ])
-    d.save(os.path.join(OUT, 'BaoCao_Chuong1_TongQuan.docx'))
 
 
 if __name__ == '__main__':
