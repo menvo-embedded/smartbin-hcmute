@@ -569,16 +569,25 @@ if __name__ == '__main__':
         fn(d)
         d.save(os.path.join(OUT, name))
 
+    # Cuốn nộp theo tiến độ: đủ Chương 1–3, Chương 4–5 để trống (nộp các tuần sau).
+    # Khi nộp bản hoàn chỉnh: đặt DAY_DU = True rồi chạy lại.
+    DAY_DU = False
     d = base_doc()
     bia(d)
     page_break(d)
     muc_luc(d)
     page_break(d)
     viet_chuong1(d)
-    for n, fn in ((2, lambda: viet_chuong2(d)), (3, lambda: viet_chuong3(d, arch)),
-                  (4, lambda: viet_chuong4(d)), (5, lambda: viet_chuong5(d))):
+    for n, fn in ((2, lambda: viet_chuong2(d)), (3, lambda: viet_chuong3(d, arch))):
         page_break(d)
         fn()
+    for n, ten, fn in ((4, 'PHÂN TÍCH KẾT QUẢ', lambda: viet_chuong4(d)), (5, 'KẾT LUẬN', lambda: viet_chuong5(d))):
+        page_break(d)
+        if DAY_DU:
+            fn()
+        else:
+            d.add_heading(f'CHƯƠNG {n}: {ten}', level=1).alignment = WD_ALIGN_PARAGRAPH.CENTER
+            para(d, '(Sẽ hoàn thiện trong các tuần tiếp theo.)', italic=True, align='center')
     page_break(d)
     tai_lieu(d)
     d.save(os.path.join(OUT, 'BaoCao_CuoiKy_SmartBin.docx'))
