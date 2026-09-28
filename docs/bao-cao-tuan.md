@@ -131,6 +131,20 @@ mở rộng nhóm làm việc, chuẩn bị và huấn luyện lại model AI.
   ca/ngày, bảng ca trực nhân viên), chụp ảnh minh chứng thu gom, icon app
   thật, cấu hình `metro.config.js` (dự án trước đó thiếu hẳn file này).
 
+## Tuần 7 (22–28/09)
+
+**Mục tiêu:** hoàn thiện app, AI theo bài báo khoa học, tự động hoá. File nộp:
+`docs/bao-cao/Tuan07_TongKet.docx`, `Tuan07_TomTat.pptx`, `BaoCao_Chuong1_TongQuan.docx`.
+
+- Đủ 4 luồng trên dữ liệu thật: kiosk cộng đồng, hộ gia đình, nhân viên, quản lý.
+- AI MobileCLIP-S0 (CVPR 2024) zero-shot, 93,16% trên 2.749 ảnh; camera tự nhận diện và mở nắp.
+- Tự vận hành phía server: tự lên lịch (≥60%), việc khẩn (≥80%), tự giao việc, nhắc việc trễ,
+  dự báo đầy, phát hiện thùng mất kết nối; thông báo realtime.
+- Dự báo đầy, lộ trình tối ưu, chấm phân loại, tác động môi trường + huy hiệu, tra cứu rác.
+- Thanh tab dưới cho nhân viên và quản lý.
+- Kiểm thử: server 44/44, logic app 25/25, thủ công trên điện thoại; sửa 8 lỗi.
+- Viết Chương 1 cuốn báo cáo.
+
 ## Còn tồn đọng, cần làm tiếp
 
 - **Tích hợp model AI (.tflite) vào app thật qua camera** — model đã train
