@@ -145,6 +145,22 @@ features on top: admin realtime (`core/supabase/useTableChanges.ts` generic hook
 (`features/collection/route.ts`, screen `(collector)/route`), impact + badges
 (`features/stats/impact.ts`).
 
+Automation ("tự vận hành", `2026-09-28_tu_dong_hoa.sql`, all server-side):
+`bins_fill_alert` now schedules a routine task for the nearest shift at ≥60%
+(if `automation_settings.predictive_schedule`) and creates/upgrades to urgent
+at ≥80%; BEFORE INSERT `auto_dispatch_task` assigns new unassigned tasks to the
+on-duty collector (`profiles.on_duty`) with the fewest tasks that day
+(`pick_collector`); lifecycle triggers write `notifications` (recipient null =
+all admins = automation log); `run_automation()` (pg_cron every 5 min, or the
+admin "Chạy kiểm tra ngay" button) escalates stale tasks, forecasts from the
+24 h sort rate, and marks devices offline when `device_heartbeat` RPC (sent
+every minute by kiosk/household apps while BLE-connected, and on every sort)
+stops. Tasks carry `origin` / `auto_assigned`. App side: `NotificationWatcher`
+(root layout) listens via Realtime, fires local `expo-notifications`
+(`core/notifications/localNotify.ts`) and invalidates related queries;
+`NotificationBell` in headers; admin tab **Tự động** (`AutomationPanel`);
+`useAutoBinConnection` = auto BLE connect + retry every 10 s + heartbeat.
+
 Migrations already applied to the live DB live in `supabase/migrations_manual/`
 (each is reflected in `schema.sql`). AI scan (household home): MobileCLIP-S0 zero-shot, TFLite FP32 default in
 `src/ml/` (only place importing fast-tflite); research scripts, results and

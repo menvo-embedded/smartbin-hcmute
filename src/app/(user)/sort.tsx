@@ -8,7 +8,8 @@ import { supabase } from '../../core/supabase/client';
 import { useAuth } from '../../features/auth/store';
 import { useSortAction } from '../../features/sorting/useSortAction';
 import { useSortStats } from '../../features/sorting/useSortStats';
-import { useBinConnection } from '../../features/sorting/useBinConnection';
+import { useAutoBinConnection } from '../../features/sorting/useAutoBinConnection';
+import { useTableChanges } from '../../core/supabase/useTableChanges';
 import { useKioskConfig } from '../../features/devices/kioskConfigStore';
 import { WasteGuideSearch } from '../../features/sorting/WasteGuideSearch';
 import { LiveScanPanel } from '../../features/sorting/LiveScanPanel';
@@ -58,17 +59,10 @@ export default function Sort() {
 
   const { sort, busy, error } = useSortAction(deviceId ?? '');
   const { history, stats, reload: loadHistory } = useSortStats();
-  const { status: bleStatus, error: bleError, connect: connectBin, disconnect: disconnectBin } = useBinConnection();
-
-  useEffect(() => {
-    if (!deviceId) return;
-    connectBin();
-    // Ngắt kết nối cũ khi đổi bin (hoặc rời màn hình) — ESP32 chỉ quảng bá
-    // lại khi thực sự bị ngắt, nếu không lần quét kế tiếp sẽ không thấy nó.
-    return () => {
-      disconnectBin();
-    };
-  }, [deviceId, connectBin, disconnectBin]);
+  // Tự kết nối thùng, tự thử lại khi lỗi, gửi nhịp tim lên server.
+  const { status: bleStatus, error: bleError, retry: connectBin } = useAutoBinConnection(deviceId);
+  // Mức đầy các thùng tự cập nhật (realtime) khi có người bỏ rác / vừa thu gom.
+  useTableChanges('kiosk-bins', ['bins'], () => void refetch());
 
   async function onPickType(type: WasteType, source: 'manual' | 'ai' = 'manual', confidence?: number) {
     if (!deviceId) return;
@@ -218,7 +212,7 @@ export default function Sort() {
             </View>
             {bleStatus === 'error' && (
               <Pressable onPress={connectBin}>
-                <Text style={{ color: colors.primary, fontWeight: '600' }}>Thử kết nối lại</Text>
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>Đang tự thử lại mỗi 10 giây · Kết nối ngay</Text>
               </Pressable>
             )}
             <View style={styles.typeGrid}>

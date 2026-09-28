@@ -13,6 +13,7 @@ import {
 } from '../../features/collection/taskStatus';
 import type { TaskWithDevice } from '../../features/collection/types';
 import { SHIFT_SHORT_LABELS } from '../../features/admin/types';
+import { NotificationBell } from '../../features/notifications/NotificationBell';
 import { colors } from '../../theme/colors';
 import { Card, StatCard, StatusBadge, ScreenHeader, SectionTitle, EmptyState, GradientView, ProgressBar } from '../../shared/ui';
 
@@ -100,6 +101,7 @@ export default function Tasks() {
           await signOut();
           router.replace('/');
         }}
+        right={<NotificationBell />}
       />
 
       <View style={styles.body}>
@@ -244,8 +246,14 @@ export default function Tasks() {
                           <Text style={styles.routineTagText}>📋 Lịch ca</Text>
                         </View>
                       )}
+                      {item.auto_assigned && (
+                        <View style={styles.autoTag}>
+                          <Text style={styles.autoTagText}>🤖 Tự giao</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
+                  {!!item.note && <Text style={styles.taskNote}>{item.note}</Text>}
                 </Card>
               </Pressable>
             );
@@ -257,6 +265,23 @@ export default function Tasks() {
 }
 
 const styles = StyleSheet.create({
+  autoTag: {
+    backgroundColor: '#ccfbf1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  autoTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0f766e',
+  },
+  taskNote: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
   routeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,7 +411,10 @@ const styles = StyleSheet.create({
   },
   taskTagGroup: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    flexShrink: 1,
     gap: 6,
   },
   shiftTag: {

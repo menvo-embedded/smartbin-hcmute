@@ -14,8 +14,8 @@ interface RatedTask {
 }
 
 const MIXED_TIP =
-  'Mẹo: vỏ trái cây, thức ăn thừa → Hữu cơ; chai nhựa, lon, giấy sạch → Tái chế; ' +
-  'túi nilon bẩn, sành sứ, tã → Vô cơ.';
+  'Mẹo: vỏ trái cây, thức ăn thừa: Hữu cơ; chai nhựa, lon, giấy sạch: Tái chế; ' +
+  'túi nilon bẩn, sành sứ, tã: Vô cơ.';
 
 /** Đánh giá phân loại do nhân viên thu gom chấm cho thùng nhà mình. */
 export function CollectionFeedback({ deviceId }: { deviceId: string }) {

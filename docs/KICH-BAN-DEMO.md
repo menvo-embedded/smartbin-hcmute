@@ -17,7 +17,8 @@ Tài khoản test — mật khẩu đều là `123456`, có nút "Đăng nhập 
 | Quản trị | user3@test.com | Quản trị viên |
 
 Chuẩn bị: chạy `supabase db query --linked -f supabase/reset_demo.sql` để đưa thùng
-về mức đầy demo (thùng B 85% có sẵn 1 việc đột xuất), điện thoại có mạng, `EXPO_PUBLIC_MOCK_BLE=1` (không cần ESP32). Mở sẵn
+về mức đầy demo (thùng B đã được hệ thống tự tạo + tự giao 1 việc khẩn cho An, xoá
+thông báo cũ), điện thoại có mạng, `EXPO_PUBLIC_MOCK_BLE=1` (không cần ESP32). Mở sẵn
 Supabase Dashboard › Table Editor để chứng minh dữ liệu là thật.
 
 ## 1. Cộng đồng — kiosk công khai (2 phút)
@@ -39,13 +40,23 @@ Supabase Dashboard › Table Editor để chứng minh dữ liệu là thật.
    trang chủ có 🔥 chuỗi ngày liên tiếp.
 6. Tab **Lịch sử** (lọc theo loại), **Thống kê** (tỷ lệ + biểu đồ 7 ngày, xuất báo cáo).
 
-## 3. Admin phát hiện thùng đầy (2 phút)
-1. Chọn chế độ › **Cộng đồng** › đăng nhập **Quản lý** → bản đồ + danh sách thùng, % đầy từng ngăn,
-   và **dự báo** "Dự báo đầy sau ~X giờ/ngày" (tốc độ bỏ rác 7 ngày × mức đầy mỗi lượt).
-2. **Mô phỏng Demo** › chọn thùng › **Dọn sạch (0%)** rồi **Mô phỏng thùng đầy (85%)**.
-3. Nói: *"Khi ngăn vượt 80%, trigger `create_task_when_full` trong Postgres tự
-   tạo việc thu gom đột xuất."* → tab **Điều phối** thấy việc mới "Chờ phân công".
-4. **Phân công ca trực** cho một nhân viên (chọn ca, chọn thùng).
+## 3. Hệ thống TỰ VẬN HÀNH — điểm nhấn chính (3 phút)
+Cần 2 máy: máy A **Quản lý**, máy B **Nhân viên An** (hoặc Hộ gia đình nếu mô phỏng thùng A).
+1. Máy A › tab **Tự động**: "Hệ thống đang tự vận hành", các quy tắc (bật/tắt được),
+   nhân viên đang trực, nhật ký tự động. Nói: *"Quản lý không phải giao việc bằng tay
+   nữa — server tự làm, app chỉ cấu hình."*
+2. **Mô phỏng Demo** › thùng C › ngăn Tái chế **65%**. Không bấm gì thêm:
+   - trigger thấy vượt 60% → tự tạo việc "lịch ca" cho ca gần nhất (`auto_create_task`);
+   - trigger `auto_dispatch_task` tự giao cho nhân viên **đang trực ít việc nhất**;
+   - máy B **rung + hiện thông báo** "📋 Việc mới: Thùng rác khu C" và danh sách tự cập nhật;
+   - máy A: nhật ký "🤖 Tự động tạo việc ... Giao cho ...", tab Điều phối có nhãn **🤖 Tự động**.
+3. Mô phỏng tiếp ngăn đó **85%** → việc được **nâng lên khẩn** và nhân viên được báo lại.
+4. Thùng A (của hộ gia đình) làm tương tự → máy hộ gia đình nhận "🚛 Đã lên lịch thu gom
+   thùng nhà bạn", trang chủ có thẻ **Lịch thu gom kế tiếp**.
+5. Tắt công tắc **đang trực** của An rồi mô phỏng lại → việc sang Cường. Bấm **Chạy
+   kiểm tra ngay** để chạy vòng định kỳ (bình thường pg_cron tự chạy mỗi 5 phút):
+   nhắc việc khẩn quá hạn, tự giao việc bị bỏ quên, dự báo theo tốc độ bỏ rác 24 giờ,
+   báo thùng mất kết nối (không nhận nhịp tim quá 10 phút).
 
 ## 4. Nhân viên thu gom (2 phút)
 1. **Cộng đồng** › đăng nhập **Nhân viên thu gom** → banner ca hôm nay + danh sách việc.
@@ -70,6 +81,15 @@ liệu mình được xem."*
 thùng để xem ảnh nghiệm thu, tên nhân viên, giờ hoàn tất.
 
 ## Câu hỏi hay gặp
+- **"Tự động" chạy ở đâu, tắt app có chạy không?** Ở server: trigger Postgres phản ứng
+  tức thì với thay đổi dữ liệu, `pg_cron` chạy `run_automation()` mỗi 5 phút. Tắt hết
+  app hệ thống vẫn tự lên lịch / nhắc việc. Code: `supabase/migrations_manual/2026-09-28_tu_dong_hoa.sql`.
+- **Thông báo gửi thế nào?** Trigger ghi bảng `notifications` → Supabase Realtime đẩy
+  về app → app bật thông báo hệ thống (`expo-notifications`, không cần máy chủ push).
+- **Chọn nhân viên theo tiêu chí gì?** `pick_collector()`: đang trực, ít việc trong
+  ngày nhất, hoà thì ít việc tồn nhất.
+- **Sao biết thùng mất kết nối?** App kiosk/hộ gia đình đang nối BLE với thùng gửi nhịp
+  tim mỗi phút (`device_heartbeat`); mỗi lượt bỏ rác cũng tính. Im lặng quá ngưỡng → offline.
 - **Mất mạng thì sao?** Ghi SQLite + hàng đợi `sync_queue`; có mạng lại
   (`NetInfo`) thì `flush()` gửi, tối đa 5 lần thử.
 - **Phân quyền ở đâu?** RLS trong `supabase/schema.sql`, hàm `my_role()`.

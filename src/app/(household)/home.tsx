@@ -12,6 +12,10 @@ import { CollectionFeedback } from '../../features/household/CollectionFeedback'
 import { AiScanCard } from '../../features/household/AiScanCard';
 import { LiveScanPanel } from '../../features/sorting/LiveScanPanel';
 import { useImpact } from '../../features/stats/useImpact';
+import { useAutoBinConnection } from '../../features/sorting/useAutoBinConnection';
+import { NextPickupCard } from '../../features/household/NextPickupCard';
+import { NotificationBell } from '../../features/notifications/NotificationBell';
+import { useTableChanges } from '../../core/supabase/useTableChanges';
 import { WASTE_LABELS, FILL_ALERT_THRESHOLD, type WasteType } from '../../shared/constants/waste';
 import type { Device, Bin } from '../../shared/types/database';
 import { colors } from '../../theme/colors';
@@ -40,6 +44,11 @@ export default function HouseholdHome() {
 
   const device = devices?.[0] ?? null;
   const { sort, busy, error: sortError } = useSortAction(device?.id ?? '');
+  // Tự kết nối thùng nhà mình (tự thử lại khi lỗi) + gửi nhịp tim lên server.
+  const { status: bleStatus } = useAutoBinConnection(device?.id ?? null);
+  const connected = bleStatus === 'connected';
+  // Mức đầy thùng tự cập nhật khi vừa bỏ rác hoặc nhân viên vừa thu gom.
+  useTableChanges('household-bins', ['bins'], () => void refetch());
   const [lastResult, setLastResult] = useState<string | null>(null);
   const { rows: allHistory, error: dbError, reload: loadHistory } = useSortHistory(null);
   const history = allHistory.slice(0, 5);
@@ -70,6 +79,7 @@ export default function HouseholdHome() {
         </Pressable>
 
         <View style={styles.headerActions}>
+          <NotificationBell />
           <Pressable
             onPress={async () => {
               await signOut();
@@ -120,11 +130,29 @@ export default function HouseholdHome() {
                 </View>
                 <StatusBadge label={`${Math.round(fillLevel * 100)}% đầy`} tone={isFull ? 'danger' : 'success'} />
               </View>
+              <View style={styles.connRow}>
+                <View style={[styles.connDot, { backgroundColor: connected ? colors.success : colors.warning }]} />
+                <Text style={styles.connText}>
+                  {connected
+                    ? 'Đã kết nối thùng · tự động'
+                    : bleStatus === 'error'
+                      ? 'Mất kết nối thùng — đang tự thử lại'
+                      : 'Đang tự kết nối thùng...'}
+                </Text>
+              </View>
             </Card>
+            <NextPickupCard deviceId={device.id} />
           </View>
         )}
 
-        {device && <LiveScanPanel onDetect={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
+        {device && (
+          // Bật sẵn: đưa rác ra trước camera là tự mở đúng ngăn.
+          <LiveScanPanel
+            defaultOn
+            onDetect={(type, conf) => onPickType(type, 'ai', conf)}
+            disabled={busy || !connected}
+          />
+        )}
 
         {device && <AiScanCard onConfirm={(type, conf) => onPickType(type, 'ai', conf)} disabled={busy} />}
 
@@ -195,6 +223,9 @@ export default function HouseholdHome() {
 }
 
 const styles = StyleSheet.create({
+  connRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  connDot: { width: 8, height: 8, borderRadius: 4 },
+  connText: { fontSize: 12, color: colors.textMuted },
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -239,8 +270,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   headerActions: {
-    alignItems: 'flex-end',
-    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   headerAction: {
     color: colors.textOnPrimary,

@@ -8,6 +8,7 @@ import { useAuth } from '../features/auth/store';
 import { startAutoSync } from '../core/sync/engine';
 import { assertEnv } from '../core/config/env';
 import { SyncStatusBanner } from '../shared/ui';
+import { NotificationWatcher } from '../features/notifications/NotificationWatcher';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 2 } },
@@ -47,6 +48,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{ headerShown: false }} />
       <SyncStatusBanner />
+      <NotificationWatcher />
     </QueryClientProvider>
   );
 }

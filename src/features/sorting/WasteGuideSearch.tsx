@@ -57,7 +57,7 @@ export function WasteGuideSearch({ onPick, disabled }: Props) {
             <Ionicons name={WASTE_ICONS[r.item.type] as never} size={20} color={colors.primaryDark} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>
-                {r.item.name} → <Text style={styles.type}>{WASTE_LABELS[r.item.type]}</Text>
+                {r.item.name} › <Text style={styles.type}>{WASTE_LABELS[r.item.type]}</Text>
               </Text>
               {r.item.tip && <Text style={styles.tip}>{r.item.tip}</Text>}
             </View>

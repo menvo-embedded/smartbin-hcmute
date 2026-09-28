@@ -47,6 +47,9 @@ import { TaskProofModal } from '../../features/admin/components/TaskProofModal';
 import { DemoControlModal } from '../../features/admin/components/DemoControlModal';
 import { DateStrip } from '../../features/admin/components/DateStrip';
 import { CreateDailyScheduleModal } from '../../features/admin/components/CreateDailyScheduleModal';
+import { AutomationPanel } from '../../features/admin/components/AutomationPanel';
+import { NotificationBell } from '../../features/notifications/NotificationBell';
+import { useNotifications } from '../../features/notifications/useNotifications';
 import { AllStaffDailyShiftBoard } from '../../features/admin/components/AllStaffDailyShiftBoard';
 
 const DEVICE_FILTERS = [
@@ -98,6 +101,8 @@ export default function Devices() {
     resetDeviceBins,
   } = useAdminDispatch();
   const { lastUpdate } = useAdminRealtime();
+  const { items: notifications } = useNotifications();
+  const unreadAutomation = notifications.filter((n) => n.recipient_id === null && !n.read_at).length;
 
   // Query thiết bị & các ngăn rác
   const {
@@ -226,6 +231,10 @@ export default function Devices() {
         {
           onSuccess: (newTask) => {
             setActiveTab('dispatch');
+            if (newTask?.auto_assigned) {
+              Alert.alert('Đã tự động giao việc', 'Hệ thống đã giao cho nhân viên đang trực có ít việc nhất.');
+              return;
+            }
             if (newTask) {
               const created = newTask as unknown as CollectionTask;
               setAssigningTask({
@@ -282,6 +291,7 @@ export default function Devices() {
           await signOut();
           router.replace('/');
         }}
+        right={<NotificationBell />}
       />
 
       {/* Thanh chuyển tab phân hệ */}
@@ -290,6 +300,7 @@ export default function Devices() {
         onTabChange={setActiveTab}
         fullCount={fullDevicesCount}
         pendingTaskCount={pendingTasksCount}
+        automationCount={unreadAutomation}
       />
 
       <LiveIndicator lastUpdate={lastUpdate} />
@@ -495,7 +506,7 @@ export default function Devices() {
               );
             }}
           />
-        ) : (
+        ) : activeTab === 'dispatch' ? (
           /* ================= TAB 2: ĐIỀU PHỐI THU GOM ================= */
           <FlatList
             data={filteredTasks}
@@ -658,8 +669,14 @@ export default function Devices() {
                           <Text style={styles.routineTagText}>📋 Định kỳ ca</Text>
                         </View>
                       )}
+                      {(item.auto_assigned || (item.origin && item.origin !== 'manual')) && (
+                        <View style={styles.autoTag}>
+                          <Text style={styles.autoTagText}>🤖 Tự động</Text>
+                        </View>
+                      )}
                     </View>
                   </View>
+                  {!!item.note && <Text style={styles.taskNote}>{item.note}</Text>}
 
                   {/* Thông tin nhân viên & Hành động phân công */}
                   <View style={styles.assigneeContainer}>
@@ -734,6 +751,9 @@ export default function Devices() {
               );
             }}
           />
+        ) : (
+          /* ================= TAB 3: TỰ ĐỘNG HOÁ ================= */
+          <AutomationPanel tasks={tasks ?? []} collectors={collectors} />
         )}
       </View>
 
@@ -1143,7 +1163,10 @@ const styles = StyleSheet.create({
   },
   taskBadgeGroup: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    flexShrink: 1,
     gap: 6,
   },
   shiftTag: {
@@ -1180,5 +1203,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: colors.primaryDark,
+  },
+  autoTag: {
+    backgroundColor: '#ccfbf1',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  autoTagText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0f766e',
+  },
+  taskNote: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });

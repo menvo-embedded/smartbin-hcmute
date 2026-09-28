@@ -1,6 +1,6 @@
 import type { Device, Bin, CollectionTask, Profile } from '../../shared/types/database';
 
-export type AdminTab = 'devices' | 'dispatch';
+export type AdminTab = 'devices' | 'dispatch' | 'automation';
 
 export type DeviceFilter = 'all' | 'full' | 'online' | 'offline';
 

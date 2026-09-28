@@ -1,76 +1,72 @@
+import type { ComponentProps } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import { GradientView } from '../../../shared/ui';
 import type { AdminTab } from '../types';
 
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
 interface Props {
   activeTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
   fullCount: number;
   pendingTaskCount: number;
+  /** Số cảnh báo tự động chưa đọc. */
+  automationCount?: number;
 }
 
-export function AdminSegmentedControl({ activeTab, onTabChange, fullCount, pendingTaskCount }: Props) {
+const TABS: { key: AdminTab; label: string; icon: IoniconName; tone: 'danger' | 'warning' }[] = [
+  { key: 'devices', label: 'Thùng rác', icon: 'trash-bin', tone: 'danger' },
+  { key: 'dispatch', label: 'Điều phối', icon: 'people', tone: 'warning' },
+  { key: 'automation', label: 'Tự động', icon: 'hardware-chip', tone: 'warning' },
+];
+
+export function AdminSegmentedControl({
+  activeTab,
+  onTabChange,
+  fullCount,
+  pendingTaskCount,
+  automationCount = 0,
+}: Props) {
+  const counts: Record<AdminTab, number> = {
+    devices: fullCount,
+    dispatch: pendingTaskCount,
+    automation: automationCount,
+  };
+
   return (
     <View style={styles.container}>
-      {/* Tab Giám sát Thùng rác */}
-      <Pressable
-        style={styles.tabButton}
-        onPress={() => onTabChange('devices')}
-        hitSlop={4}
-      >
-        {activeTab === 'devices' ? (
-          <GradientView style={styles.activeTab}>
-            <Ionicons name="trash-bin" size={16} color={colors.textOnPrimary} />
-            <Text style={styles.activeTabText}>Thùng rác</Text>
-            {fullCount > 0 && (
-              <View style={[styles.badge, styles.badgeDanger]}>
-                <Text style={styles.badgeTextDanger}>{fullCount}</Text>
+      {TABS.map((tab) => {
+        const active = activeTab === tab.key;
+        const count = counts[tab.key];
+        const badgeText = tab.tone === 'danger' ? styles.badgeTextDanger : styles.badgeTextWarning;
+        const softBadge = tab.tone === 'danger' ? styles.badgeDangerSoft : styles.badgeWarningSoft;
+        const content = (
+          <>
+            <Ionicons
+              name={active ? tab.icon : (`${tab.icon}-outline` as IoniconName)}
+              size={16}
+              color={active ? colors.textOnPrimary : colors.textMuted}
+            />
+            <Text style={active ? styles.activeTabText : styles.inactiveTabText}>{tab.label}</Text>
+            {count > 0 && (
+              <View style={[styles.badge, active ? styles.badgeOnActive : softBadge]}>
+                <Text style={badgeText}>{count > 99 ? '99+' : count}</Text>
               </View>
             )}
-          </GradientView>
-        ) : (
-          <View style={styles.inactiveTab}>
-            <Ionicons name="trash-bin-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.inactiveTabText}>Thùng rác</Text>
-            {fullCount > 0 && (
-              <View style={[styles.badge, styles.badgeDangerSoft]}>
-                <Text style={styles.badgeTextDanger}>{fullCount}</Text>
-              </View>
+          </>
+        );
+        return (
+          <Pressable key={tab.key} style={styles.tabButton} onPress={() => onTabChange(tab.key)} hitSlop={4}>
+            {active ? (
+              <GradientView style={styles.tab}>{content}</GradientView>
+            ) : (
+              <View style={styles.tab}>{content}</View>
             )}
-          </View>
-        )}
-      </Pressable>
-
-      {/* Tab Điều phối Thu gom */}
-      <Pressable
-        style={styles.tabButton}
-        onPress={() => onTabChange('dispatch')}
-        hitSlop={4}
-      >
-        {activeTab === 'dispatch' ? (
-          <GradientView style={styles.activeTab}>
-            <Ionicons name="people" size={16} color={colors.textOnPrimary} />
-            <Text style={styles.activeTabText}>Điều phối thu gom</Text>
-            {pendingTaskCount > 0 && (
-              <View style={[styles.badge, styles.badgeWarning]}>
-                <Text style={styles.badgeTextWarning}>{pendingTaskCount}</Text>
-              </View>
-            )}
-          </GradientView>
-        ) : (
-          <View style={styles.inactiveTab}>
-            <Ionicons name="people-outline" size={16} color={colors.textMuted} />
-            <Text style={styles.inactiveTabText}>Điều phối thu gom</Text>
-            {pendingTaskCount > 0 && (
-              <View style={[styles.badge, styles.badgeWarningSoft]}>
-                <Text style={styles.badgeTextWarning}>{pendingTaskCount}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </Pressable>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -89,23 +85,14 @@ const styles = StyleSheet.create({
   tabButton: {
     flex: 1,
   },
-  activeTab: {
+  tab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 10,
-    gap: 6,
-  },
-  inactiveTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    gap: 6,
+    gap: 5,
   },
   activeTabText: {
     fontSize: 13,
@@ -118,21 +105,18 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 10,
     minWidth: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeDanger: {
+  badgeOnActive: {
     backgroundColor: '#FFFFFF',
   },
   badgeDangerSoft: {
     backgroundColor: colors.dangerBg,
-  },
-  badgeWarning: {
-    backgroundColor: '#FFFFFF',
   },
   badgeWarningSoft: {
     backgroundColor: colors.warningBg,
