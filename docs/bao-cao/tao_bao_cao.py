@@ -5,6 +5,7 @@ from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from pptx import Presentation
 from pptx.util import Inches, Pt as PPt
@@ -82,6 +83,10 @@ def table(d, header, rows, widths=None, caption=None):
         for row in t.rows:
             for i, w in enumerate(widths):
                 row.cells[i].width = Cm(w)
+    # Không cho một hàng bị chẻ đôi giữa hai trang; tránh dòng/cụm từ mồ côi.
+    for row in t.rows:
+        tr_pr = row._tr.get_or_add_trPr()
+        tr_pr.append(OxmlElement('w:cantSplit'))
     d.add_paragraph()
     return t
 

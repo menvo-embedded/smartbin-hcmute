@@ -9,6 +9,16 @@ Khung này phục vụ cả hai project của môn Phát triển ứng dụng di
 
 Phần dùng chung là `src/ml/` và `src/core/` — viết một lần, dùng cho cả hai.
 
+## Hồ sơ nộp bài cuối kỳ
+
+- **Cuốn báo cáo:** [PDF](docs/bao-cao/BaoCao_CuoiKy_SmartBin_HoanChinh.pdf) ·
+  [Word](docs/bao-cao/BaoCao_CuoiKy_SmartBin_HoanChinh.docx)
+- **Video demo:** https://www.youtube.com/watch?v=mfrva-ueWmg
+- **Lưu đồ thuật toán:** [docs/bao-cao/hinh/luu-do-thuat-toan/](docs/bao-cao/hinh/luu-do-thuat-toan/)
+- **Slide trình bày:** [docs/bao-cao/ppt-final/](docs/bao-cao/ppt-final/)
+- **Kiến trúc:** [docs/KIEN-TRUC.md](docs/KIEN-TRUC.md) · **CSDL:** [supabase/schema.sql](supabase/schema.sql)
+- **Mã nguồn:** app `src/`, firmware ESP32 `firmware/`, nghiên cứu mô hình AI `ml-research/`
+
 ## Getting Started
 
 ### 1. Clone

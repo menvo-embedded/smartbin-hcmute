@@ -14,6 +14,8 @@ from matplotlib.patches import FancyBboxPatch
 from tao_bao_cao import OUT, REPO, base_doc, para, bullets, table, viet_chuong1
 
 HINH = os.path.join(OUT, 'hinh')
+FLOW_DIR = os.path.join(HINH, 'luu-do')
+VIDEO_DEMO = 'https://www.youtube.com/watch?v=mfrva-ueWmg&feature=youtu.be'
 J = 'justify'
 
 
@@ -36,6 +38,13 @@ def figure(d, path, caption, width_cm=15):
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(path, width=Cm(width_cm))
     para(d, caption, italic=True, align='center', size=12)
+
+
+def flow_figure(d, filename, width_cm=14.7):
+    """Chèn lưu đồ đã có chú thích ngay trong ảnh."""
+    p = d.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.add_run().add_picture(os.path.join(FLOW_DIR, filename), width=Cm(width_cm))
 
 
 def phone_shot(name):
@@ -189,8 +198,8 @@ def viet_chuong2(d):
 
     d.add_heading('2.7. Học sâu cho phân loại ảnh và mô hình thị giác – ngôn ngữ', level=2)
     text(d,
-         'Các nghiên cứu phân loại rác thường huấn luyện mạng tích chập (CNN) trên tập ảnh có nhãn, ví dụ TrashNet [3] (6 loại '
-         'vật liệu) hay MobileNetV2 [4]. Hạn chế: cần dữ liệu lớn cho đúng các nhóm của bài toán, và muốn đổi nhóm phải huấn luyện lại.',
+         'Các nghiên cứu phân loại rác thường huấn luyện mạng tích chập (CNN) trên tập ảnh có nhãn, ví dụ TrashNet [3] với '
+         '6 loại vật liệu. Hạn chế: cần dữ liệu lớn cho đúng các nhóm của bài toán, và muốn đổi nhóm phải huấn luyện lại.',
          'CLIP [2] huấn luyện đồng thời bộ mã hoá ảnh và bộ mã hoá văn bản trên hàng trăm triệu cặp ảnh – chú thích bằng học '
          'tương phản (contrastive learning): ảnh và câu mô tả đúng của nó được kéo lại gần nhau trong cùng một không gian vector. '
          'Nhờ vậy có thể phân loại zero-shot: không cần huấn luyện thêm, chỉ cần so ảnh với các câu mô tả từng lớp.')
@@ -202,20 +211,20 @@ def viet_chuong2(d):
          'MobileCLIP [1] (Apple, CVPR 2024) là họ mô hình CLIP thiết kế cho thiết bị di động, huấn luyện theo phương pháp '
          '"multi-modal reinforced training" để giữ độ chính xác cao với độ trễ thấp. Bản nhỏ nhất MobileCLIP-S0 có bộ mã hoá ảnh '
          'lai CNN–Transformer, đầu vào 256×256, đầu ra vector 512 chiều. Hướng zero-shot bằng mô hình thị giác – ngôn ngữ cũng '
-         'đã được áp dụng cho phân loại rác nhựa trong [7].')
+         'đã được áp dụng cho phân loại rác nhựa trong [6].')
 
     d.add_heading('2.8. TensorFlow Lite và lượng tử hoá', level=2)
     text(d,
          'TensorFlow Lite (LiteRT) là môi trường chạy mô hình học sâu trên thiết bị. Delegate cho phép chuyển tính toán sang '
          'GPU (OpenCL/OpenGL) để tăng tốc. Lượng tử hoá giảm độ chính xác số của trọng số: FP16 (16 bit) giảm một nửa dung lượng; '
-         'INT8 dynamic range lưu trọng số 8 bit và giải lượng tử khi chạy; lượng tử hoá nguyên hoàn toàn [6] tính toán hoàn toàn '
+         'INT8 dynamic range lưu trọng số 8 bit và giải lượng tử khi chạy; lượng tử hoá nguyên hoàn toàn [5] tính toán hoàn toàn '
          'bằng số nguyên nên nhanh nhất trên phần cứng di động.')
 
     d.add_heading('2.9. Bài toán lộ trình và dự báo', level=2)
     bullets(d, [
         ('Khoảng cách haversine: ', 'khoảng cách trên mặt cầu giữa hai toạ độ (vĩ độ, kinh độ), bán kính Trái Đất 6.371 km.'),
         ('Bài toán người du lịch (TSP): ', 'tìm thứ tự ghé thăm các điểm có tổng quãng đường nhỏ nhất — bài toán NP-khó. Với vài '
-         'chục điểm, heuristic láng giềng gần nhất (luôn đi tới điểm gần nhất chưa ghé) kết hợp cải thiện 2-opt [8] (đảo ngược một '
+         'chục điểm, heuristic láng giềng gần nhất (luôn đi tới điểm gần nhất chưa ghé) kết hợp cải thiện 2-opt [7] (đảo ngược một '
          'đoạn đường nếu làm tổng quãng đường ngắn lại) cho lời giải gần tối ưu trong thời gian rất ngắn.'),
         ('Dự báo tuyến tính: ', 'tốc độ đầy của một ngăn = số lượt bỏ rác trong cửa sổ quan sát × mức đầy mỗi lượt; thời gian còn '
          'lại đến ngưỡng = (ngưỡng − mức hiện tại) / tốc độ.'),
@@ -271,6 +280,8 @@ def viet_chuong3(d, arch_png):
          'báo, thống kê), core/ (hạ tầng: Supabase, SQLite, đồng bộ, BLE, thông báo — không biết gì về rác), ml/ (mô hình AI, '
          'nơi duy nhất dùng TFLite và camera) và shared/ (giao diện, kiểu dữ liệu dùng chung). Các feature chỉ nhận kết quả dạng '
          '{loại rác, độ tin cậy}, không phân biệt do người chọn hay AI suy ra.')
+    page_break(d)
+    flow_figure(d, '01-khoi-dong-phan-quyen.png')
 
     d.add_heading('3.3. Thiết kế cơ sở dữ liệu', level=2)
     table(d, ['Bảng', 'Cột chính', 'Ý nghĩa'], [
@@ -301,6 +312,8 @@ def viet_chuong3(d, arch_png):
         'Trên máy chủ, trigger khi có sort_events mới: cộng 1 điểm (hộ gia đình), tăng 2% mức đầy ngăn tương ứng, cập nhật '
         'nhịp tim thiết bị; nếu mức đầy vượt ngưỡng thì kích hoạt chuỗi tự động (3.4.4).',
     ])
+    page_break(d)
+    flow_figure(d, '02-phan-loai-bo-rac.png')
 
     d.add_heading('3.4.2. Nhận diện rác trực tiếp bằng camera', level=3)
     text(d, 'Quy trình mỗi khung hình (chạy 2 khung/giây trong frame processor của VisionCamera):')
@@ -315,11 +328,15 @@ def viet_chuong3(d, arch_png):
     ], widths=[4.5, 11.5], caption='Bảng 3.5: Máy trạng thái nhận diện trực tiếp')
     text(d, 'Nhóm "không có rác" (mặt người, tay không, mặt bàn...) giúp camera không tự mở nắp khi chưa có rác. Delegate GPU '
             'được thử trước, lỗi hoặc ra giá trị NaN thì tự chuyển sang CPU.')
+    page_break(d)
+    flow_figure(d, '03-nhan-dien-ai-truc-tiep.png')
 
     d.add_heading('3.4.3. Đồng bộ ngoại tuyến', level=3)
     text(d, 'Bộ máy đồng bộ chạy khi mạng được khôi phục (NetInfo) và định kỳ 15 giây: lấy tối đa 50 thao tác còn lượt thử, '
             'gửi lần lượt; thành công thì xoá khỏi hàng đợi và đánh dấu sự kiện đã đồng bộ; lỗi mạng thì dừng, lỗi khác thì tăng '
             'số lần thử. Lịch sử hiển thị gộp dữ liệu máy chủ với các sự kiện chưa đồng bộ trên máy.')
+    page_break(d)
+    flow_figure(d, '04-dong-bo-ngoai-tuyen.png')
 
     d.add_heading('3.4.4. Tự động hoá phía máy chủ', level=3)
     table(d, ['Sự kiện', 'Xử lý tự động (trigger / hàm)'], [
@@ -333,11 +350,15 @@ def viet_chuong3(d, arch_png):
     ], widths=[4.5, 11.5], caption='Bảng 3.6: Các quy tắc tự động hoá')
     text(d, 'Ứng dụng lắng nghe bảng notifications qua Realtime; khi có dòng mới, hiển thị thông báo hệ thống (expo-notifications) '
             'và tải lại dữ liệu liên quan. Kiosk và app hộ gia đình gửi nhịp tim (hàm device_heartbeat) mỗi phút khi đang kết nối thùng.')
+    page_break(d)
+    flow_figure(d, '06-tu-dong-hoa-dieu-phoi.png')
 
     d.add_heading('3.4.5. Lộ trình thu gom', level=3)
     text(d, 'Đầu vào: vị trí GPS của nhân viên (nếu gần khu vực) và toạ độ các thùng đang phụ trách. Thuật toán: láng giềng gần '
             'nhất rồi cải thiện 2-opt; nếu không có GPS thì thử xuất phát từ từng thùng và chọn lộ trình ngắn nhất. Kết quả hiển thị '
             'trên bản đồ Leaflet (WebView) và mở Google Maps để chỉ đường.')
+    page_break(d)
+    flow_figure(d, '05-thu-gom.png')
 
     d.add_heading('3.5. Thiết kế phần cứng và giao thức BLE', level=2)
     table(d, ['Thành phần', 'Thiết kế'], [
@@ -347,6 +368,8 @@ def viet_chuong3(d, arch_png):
         ('Lệnh', '{"cmd":"open","bin":"huu_co"} → phản hồi {"status":"ok"} hoặc {"status":"error","message":…}'),
         ('Dự phòng', 'MockBinController cùng giao diện BinController, bật bằng EXPO_PUBLIC_MOCK_BLE=1'),
     ], widths=[4, 12], caption='Bảng 3.7: Thiết kế phần cứng')
+    page_break(d)
+    flow_figure(d, '07-firmware-esp32.png')
 
     d.add_heading('3.6. Thiết kế giao diện và điều hướng', level=2)
     table(d, ['Vai trò', 'Các màn hình (tab dưới)'], [
@@ -380,13 +403,15 @@ def viet_chuong4(d):
                 ('h8', 'Thống kê')], 'Hình 4.1: Giao diện Hộ gia đình')
     screens(d, [('h4', 'Thông báo'), ('k1', 'Kiosk cộng đồng'), ('c1', 'Nhân viên: Công việc')],
             'Hình 4.2: Thông báo, kiosk và danh sách việc của nhân viên')
-    screens(d, [('u9', 'Lộ trình tối ưu + thông báo việc mới'), ('c3', 'Nhân viên: Cá nhân'),
+    screens(d, [('u9', 'Lộ trình + thông báo'), ('c3', 'Nhân viên: Cá nhân'),
                 ('u4', 'Quản lý: ảnh nghiệm thu')], 'Hình 4.3: Nhân viên thu gom và nghiệm thu')
     screens(d, [('a6', 'Quản lý: Thùng rác, bản đồ'), ('a2', 'Quản lý: Điều phối'), ('a3', 'Quản lý: Tự động hoá')],
             'Hình 4.4: Giao diện Quản lý')
 
     d.add_heading('4.3. Kết quả mô hình AI', level=2)
-    text(d, 'Tập thử: 2.749 ảnh (RealWaste [5] và nguồn bổ sung, gộp 3 nhóm). Các câu mô tả chỉ được chỉnh trên tập kiểm định; '
+    text(d, 'Ứng dụng Android tích hợp MobileCLIP-S0 chuyển sang TensorFlow Lite, kết hợp 180 câu mô tả để phân loại zero-shot '
+            'ba nhóm rác hữu cơ, vô cơ và tái chế. Toàn bộ suy luận được thực hiện trên thiết bị, không cần gửi ảnh lên máy chủ.')
+    text(d, 'Tập thử: 2.749 ảnh (RealWaste [4] và nguồn bổ sung, gộp 3 nhóm). Các câu mô tả chỉ được chỉnh trên tập kiểm định; '
             'tập thử chỉ chạy một lần để báo cáo.')
     table(d, ['Phiên bản', 'Dung lượng', 'Accuracy', 'Balanced acc.', 'Độ trễ CPU (PC)', 'Android'], [
         ('ONNX FP32 (gốc)', '45,5 MB', '93,16%', '94,63%', '27 ms', '—'),
@@ -400,8 +425,8 @@ def viet_chuong4(d):
         ('Tái chế (1.343)', '19', '123', '1.201', '89,43%'),
     ], widths=[4, 2.6, 2.6, 2.6, 2.6], caption='Bảng 4.3: Ma trận nhầm lẫn TFLite FP32 trên tập thử')
     text(d,
-         'Nhận xét: mô hình zero-shot đạt 93,16%, cao hơn 3 điểm phần trăm so với mô hình MobileNetV2 nhóm tự huấn luyện trước '
-         'đó (90,08% trên cùng tập) mà không cần huấn luyện. Nhầm lẫn nhiều nhất là tái chế → vô cơ (123 ảnh), chủ yếu là bao bì '
+         'Nhận xét: MobileCLIP-S0 zero-shot đạt 93,16% mà không cần huấn luyện lại. Mô hình nhầm nhiều nhất là tái chế → vô cơ '
+         '(123 ảnh), chủ yếu là bao bì '
          'nhựa bẩn/nhăn — chính người dùng cũng hay nhầm. Lượng tử hoá INT8 dynamic range giảm dung lượng 3,8 lần, chỉ mất 0,25 điểm '
          'phần trăm nhưng chậm hơn vì phải giải lượng tử trọng số mỗi lần chạy; bản FP16 cho kết quả NaN trên Android do tràn số.',
          'Chế độ trực tiếp (ngưỡng 0,8, cần 2 khung liên tiếp): 86,5% khung có rác được mở ngay, trong đó 97,4% mở đúng ngăn; '
@@ -421,7 +446,7 @@ def viet_chuong4(d):
         ('Leo thang', 'Việc bị bỏ quên tự giao; việc khẩn chậm được nhắc; không nhắc trùng', '3/3'),
         ('Thiết bị', 'Mất nhịp tim → offline + cảnh báo; nhịp tim lại → online', '3/3'),
         ('Dự báo, ca trực, quản lý', 'Dự báo theo tốc độ; không ai trực; chỉ một người trực; quyền quản lý; ràng buộc dữ liệu', '7/7'),
-    ], widths=[3.3, 10.5, 2.2], caption='Bảng 4.4: Kết quả kiểm thử máy chủ')
+    ], widths=[3.3, 10.5, 2.2], caption='Bảng 4.5: Kết quả kiểm thử máy chủ')
 
     d.add_heading('4.4.2. Kiểm thử logic ứng dụng', level=3)
     text(d, 'Tệp scripts/test-logic.ts kiểm tra các hàm thuần: dự báo đầy (6), lộ trình và khoảng cách (6), tác động môi trường, '
@@ -438,18 +463,23 @@ def viet_chuong4(d):
         ('Màn Cảm ơn kẹt ở 0 giây', 'Màn tab được giữ lại, bộ đếm không đặt lại', 'Đặt lại khi màn được mở lại'),
         ('Mô phỏng 85% không tạo việc', 'Chọn ngăn đầu tiên dù ngăn đó đã đầy sẵn', 'Chọn ngăn đang dưới ngưỡng'),
         ('Lỗi giao diện', 'Chữ tràn, bàn phím che kết quả, ký tự "→" lỗi font máy TECNO', 'Sửa bố cục, tự cuộn, thay ký tự'),
-    ], widths=[4.3, 6.2, 5.5], caption='Bảng 4.5: Lỗi phát hiện khi kiểm thử')
+    ], widths=[4.3, 6.2, 5.5], caption='Bảng 4.6: Lỗi phát hiện khi kiểm thử')
 
     d.add_heading('4.5. Đánh giá mức độ đạt mục tiêu', level=2)
-    table(d, ['Mục tiêu (Chương 1)', 'Kết quả'], [
+    t47 = table(d, ['Mục tiêu (Chương 1)', 'Kết quả'], [
         ('Hỗ trợ phân loại đúng 3 nhóm', 'Đạt: chọn tay, tra cứu, AI chụp ảnh, AI camera tự mở ngăn (93,16%)'),
         ('Khuyến khích phân loại', 'Đạt: điểm, huy hiệu, chuỗi ngày, CO₂, đánh giá từ nhân viên (+5 điểm)'),
         ('Hỗ trợ nhân viên thu gom', 'Đạt: việc, lộ trình tối ưu, nghiệm thu ảnh, chấm phân loại'),
         ('Giám sát, điều phối thời gian thực', 'Đạt: bản đồ, dự báo, điều phối, lịch ca, Realtime'),
         ('Tự động hoá vận hành', 'Đạt: tự lên lịch, tự giao việc, nhắc việc, phát hiện mất kết nối, thông báo'),
         ('Hoạt động khi mất mạng', 'Đạt: SQLite + hàng đợi đồng bộ, đã kiểm thử tắt/bật mạng'),
-        ('Mô hình thùng ESP32', 'Đã dựng phần cứng và firmware; đang tích hợp BLE thật (demo bằng bản giả lập)'),
-    ], widths=[5.5, 10.5], caption='Bảng 4.6: Đánh giá mức độ đạt mục tiêu')
+        ('Mô hình thùng ESP32', 'Đạt: firmware BLE điều khiển 3 servo; app có giả lập demo'),
+    ], widths=[5.5, 10.5], caption='Bảng 4.7: Đánh giá mức độ đạt mục tiêu')
+    for row in t47.rows:
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(10.5)
 
 
 # ---------------------------------------------------------------- CHƯƠNG 5
@@ -470,7 +500,7 @@ def viet_chuong5(d):
 
     d.add_heading('5.2. Hạn chế', level=2)
     bullets(d, [
-        'Kết nối BLE với thùng ESP32 thật chưa hoàn thiện; phần demo dùng bộ giả lập.',
+        'Mô hình phần cứng thử nghiệm còn ở quy mô nhỏ; độ bền cơ khí và nguồn cấp cho nhiều servo chưa được đánh giá dài hạn.',
         'Mức đầy được ước lượng theo số lượt bỏ rác (2%/lượt), chưa đo bằng cảm biến.',
         'Thông báo chỉ hiện khi app đang mở hoặc chạy nền; chưa có máy chủ push khi app đã bị tắt hẳn.',
         'AI còn nhầm tái chế ↔ vô cơ với bao bì nhựa bẩn; tốc độ ~0,5 giây/khung nên phải giữ rác yên khoảng 1 giây.',
@@ -479,9 +509,9 @@ def viet_chuong5(d):
 
     d.add_heading('5.3. Hướng phát triển', level=2)
     bullets(d, [
-        'Hoàn thiện BLE với ESP32; gắn cảm biến siêu âm đo mức đầy thật và gửi trạng thái qua Wi-Fi/MQTT.',
+        'Nâng cấp cơ cấu thùng và bảo mật ghép nối BLE; gắn cảm biến siêu âm đo mức đầy thật và gửi trạng thái qua Wi-Fi/MQTT.',
         'Tích hợp Firebase Cloud Messaging / Expo Push để thông báo cả khi app đã tắt.',
-        'Lượng tử hoá INT8 hoàn toàn [6] và tinh chỉnh câu mô tả / fine-tune nhẹ để tăng tốc độ và độ chính xác nhóm tái chế.',
+        'Lượng tử hoá INT8 hoàn toàn [5] và tinh chỉnh câu mô tả / fine-tune nhẹ để tăng tốc độ và độ chính xác nhóm tái chế.',
         'Tối ưu lộ trình nhiều xe (bài toán VRP) có ràng buộc tải trọng và khung giờ.',
         'Phát hành iOS và trang web quản trị; dự báo đầy bằng mô hình chuỗi thời gian theo ngày trong tuần.',
     ])
@@ -496,8 +526,6 @@ def tai_lieu(d):
         'A. Radford et al., "Learning transferable visual models from natural language supervision," in Proc. 38th Int. Conf. '
         'Mach. Learn. (ICML), vol. 139, 2021, pp. 8748–8763.',
         'M. Yang and G. Thung, "Classification of trash for recyclability status," CS229 Project Report, Stanford Univ., 2016.',
-        'L. Yong, L. Ma, D. Sun, and L. Du, "Application of MobileNetV2 to waste classification," PLoS ONE, vol. 18, no. 3, '
-        'Art. no. e0282336, 2023, doi: 10.1371/journal.pone.0282336.',
         'S. Single, S. Iranmanesh, and R. Raad, "RealWaste: A novel real-life data set for landfill waste classification using '
         'deep learning," Information, vol. 14, no. 12, Art. no. 633, 2023, doi: 10.3390/info14120633.',
         'B. Jacob et al., "Quantization and training of neural networks for efficient integer-arithmetic-only inference," in '
@@ -518,6 +546,18 @@ def tai_lieu(d):
         p.add_run(r)
         p.paragraph_format.left_indent = Cm(0.8)
         p.paragraph_format.first_line_indent = Cm(-0.8)
+
+
+def phu_luc(d):
+    d.add_heading('PHỤ LỤC: TÀI LIỆU BÀN GIAO', level=1)
+    table(d, ['Hạng mục', 'Vị trí / liên kết'], [
+        ('Video demo tổng hợp', VIDEO_DEMO),
+        ('Mã nguồn ứng dụng và firmware', REPO),
+        ('Mô hình MobileCLIP-S0 và mã đánh giá', 'Thư mục ai-mobileclip và src/ml trong workspace'),
+        ('Ứng dụng cài đặt', 'SmartBin-demo.apk'),
+    ], widths=[5.2, 10.8], caption='Bảng PL.1: Danh mục tài liệu bàn giao')
+    text(d, 'Toàn bộ chức năng chính đã được hoàn thành và đối chiếu với mã nguồn tại thời điểm chốt báo cáo. Video demo được '
+            'chia thành các đoạn ngắn theo từng nhóm tính năng để thuận tiện chấm và đối chiếu.')
 
 
 def muc_luc(d):
@@ -551,7 +591,7 @@ def bia(d):
     para(d, 'SMARTBIN — ỨNG DỤNG QUẢN LÝ HỆ THỐNG THÙNG RÁC THÔNG MINH', bold=True, align='center', size=17)
     for _ in range(3):
         d.add_paragraph()
-    table(d, ['Họ và tên', 'MSSV'], [('', ''), ('', ''), ('', '')], widths=[8, 5])
+    table(d, ['Họ và tên', 'MSSV'], [('Võ Ngọc Mến', ''), ('Đỗ Xuân Thanh', ''), ('Lê Thành Nhân', '')], widths=[8, 5])
     para(d, 'GVHD: Huỳnh Hoàng Hà', bold=True, align='center')
     para(d, 'TP. Hồ Chí Minh, tháng 10 năm 2026', italic=True, align='center')
 
@@ -569,9 +609,8 @@ if __name__ == '__main__':
         fn(d)
         d.save(os.path.join(OUT, name))
 
-    # Cuốn nộp theo tiến độ: đủ Chương 1–3, Chương 4–5 để trống (nộp các tuần sau).
-    # Khi nộp bản hoàn chỉnh: đặt DAY_DU = True rồi chạy lại.
-    DAY_DU = False
+    # Bản hoàn chỉnh để nộp cuối kỳ.
+    DAY_DU = True
     d = base_doc()
     bia(d)
     page_break(d)
@@ -590,5 +629,7 @@ if __name__ == '__main__':
             para(d, '(Sẽ hoàn thiện trong các tuần tiếp theo.)', italic=True, align='center')
     page_break(d)
     tai_lieu(d)
-    d.save(os.path.join(OUT, 'BaoCao_CuoiKy_SmartBin.docx'))
+    page_break(d)
+    phu_luc(d)
+    d.save(os.path.join(OUT, 'BaoCao_CuoiKy_SmartBin_HoanChinh.docx'))
     print('Xong:', sorted(f for f in os.listdir(OUT) if f.endswith('.docx')))
