@@ -12,11 +12,23 @@ export interface BinController {
   connect(deviceId: string): Promise<void>;
   openBin(type: WasteType): Promise<{ ok: boolean; message?: string }>;
   disconnect(): Promise<void>;
+  /** Báo khi thiết bị tự rớt kết nối (ESP32 mất điện/khởi động lại). Trả về hàm huỷ đăng ký. */
+  onDisconnected(listener: () => void): () => void;
 }
 
 class BleBinController implements BinController {
   private manager = new BleManager();
   private connected: BleDevice | null = null;
+  private lastDeviceId: string | null = null;
+  private listeners = new Set<() => void>();
+  private manualDisconnect = false;
+
+  onDisconnected(listener: () => void) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
 
   async scan(timeoutMs = 5000) {
     const found = new Map<string, BleDevice>();
@@ -33,9 +45,27 @@ class BleBinController implements BinController {
     const device = await this.manager.connectToDevice(deviceId, { timeout: 8000 });
     await device.discoverAllServicesAndCharacteristics();
     this.connected = device;
+    this.lastDeviceId = deviceId;
+    this.manualDisconnect = false;
+
+    // Thiết bị tự rớt (không phải do app chủ động ngắt) → xoá trạng thái và
+    // báo cho tầng trên để nó tự kết nối lại.
+    const sub = device.onDisconnected(() => {
+      sub.remove();
+      if (this.connected?.id === deviceId) this.connected = null;
+      if (!this.manualDisconnect) this.listeners.forEach((l) => l());
+    });
   }
 
   async openBin(type: WasteType) {
+    // Vừa rớt kết nối mà chưa kịp tự nối lại → thử nối lại ngay một lần.
+    if (!this.connected && this.lastDeviceId) {
+      try {
+        await this.connect(this.lastDeviceId);
+      } catch {
+        return { ok: false, message: 'Mất kết nối thùng rác, đang thử kết nối lại...' };
+      }
+    }
     if (!this.connected) return { ok: false, message: 'Chưa kết nối tới thùng rác' };
     const command = Buffer.from(JSON.stringify({ cmd: 'open', bin: type })).toString('base64');
 
@@ -59,9 +89,11 @@ class BleBinController implements BinController {
   }
 
   async disconnect() {
+    this.manualDisconnect = true;
     if (this.connected) {
-      await this.manager.cancelDeviceConnection(this.connected.id);
+      const id = this.connected.id;
       this.connected = null;
+      await this.manager.cancelDeviceConnection(id).catch(() => undefined);
     }
   }
 }
@@ -83,6 +115,10 @@ class MockBinController implements BinController {
     return { ok: true, message: `Đã mở ngăn ${type}` };
   }
   async disconnect() {}
+  // Bản giả lập không bao giờ rớt kết nối.
+  onDisconnected() {
+    return () => undefined;
+  }
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { binController } from '../../core/ble/binController';
 import { ensureBlePermissions } from '../../core/ble/permissions';
 
@@ -12,6 +12,17 @@ export type ConnectionStatus = 'idle' | 'scanning' | 'connected' | 'error';
 export function useBinConnection() {
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  // Thùng tự rớt kết nối (ESP32 mất điện/khởi động lại) → chuyển sang lỗi để
+  // useAutoBinConnection tự kết nối lại, thay vì vẫn tưởng đang kết nối.
+  useEffect(
+    () =>
+      binController.onDisconnected(() => {
+        setError('Mất kết nối thùng rác, đang tự kết nối lại...');
+        setStatus('error');
+      }),
+    [],
+  );
 
   const connect = useCallback(async () => {
     setStatus('scanning');
